@@ -10,13 +10,50 @@
 
 CON
 
-  DATABIT           = %01_000000      'OR your data byte with one of these two to tell the US2066 whether the following byte is a data byte
-  CMDBIT            = %00_000000      ' or a command byte
-  CONTBIT           = %10_000000      'Continuation bit
+  DATABIT               = %01_000000      'OR your data byte with one of these two to tell the US2066 whether the following byte is a data byte
+  CMDBIT                = %00_000000      ' or a command byte
+'  CONTBIT               = %10_000000      'Continuation bit
 
-  CTRLBYTE_CMD      = CONTBIT | CMDBIT
-  CTRLBYTE_DATA     = DATABIT
+  CTRLBYTE_CMD            = $00
+  CTRLBYTE_DATA           = $40
 
+'FUNDAMENTAL COMMAND SET
+  SSD1306_CMD_CONTRAST    = $81 'Double byte command - send 8-bit contrast value after this command
+  SSD1306_CMD_RAMDISP_ON  = $A4
+  SSD1306_CMD_ENTDISP_ON  = $A5
+  SSD1306_CMD_DISP_NORM   = $A6
+  SSD1306_CMD_DISP_INVERT = $A7  
+  SSD1306_CMD_DISP_OFF    = $AE
+  SSD1306_CMD_DISP_ON     = $AF
+
+'SCROLLING COMMAND TABLE
+  SSD1306_CMD_HSCROLL_R   = $26 '\
+  SSD1306_CMD_HSCROLL_L   = $27 '- 7 byte command - send $00 dummy byte, Page start, Time interval, Page end, $00, $FF dummy bytes after this command
+  SSD1306_CMD_VSCROLL_R   = $29 '\
+  SSD1306_CMD_VSCROLL_L   = $2A '- 6 byte command - send $00 dummy byte, Page start, Time interval, Page end, Vert. scroll offset
+  SSD1306_CMD_STOPSCROLL  = $2E ' Stop any of the above
+  SSD1306_CMD_STARTSCROLL = $2F ' Stop any of the above
+  SSD1306_CMD_VSCROLL_AREA= $A3 '- 3 byte command - send no. of rows in top fixed area (bits 5..0), no. of rows in scroll area after this command (bits 6..0)
+
+'ADDRESSING SETTING COMMAND TABLE
+  SSD1306_CMD_MEM_ADDRMODE= $20 '- 2 byte command - send addressing mode after this byte
+  SSD1306_CMD_SET_COLADDR = $21 '- 3 byte command - send column start address, column end address after this byte
+  SSD1306_CMD_SET_PAGEADDR= $22 '- 3 byte command - send page start address, page end address after this byte
+
+'HARDWARE CONFIGURATION
+  SSD1306_CMD_SEG_MAP0    = $A0 ' Column address 0 is mapped to SEG0
+  SSD1306_CMD_SEG_MAP127  = $A1 ' Column address 127 is mapped to SEG0
+  SSD1306_CMD_SETMUXRATIO = $A8  
+  SSD1306_CMD_COMDIR_NORM = $C0
+  SSD1306_CMD_COMDIR_RMAP = $C8
+  SSD1306_CMD_SETCOM_CFG  = $DA
+
+  SSD1306_CMD_SETDISPOFFS = $D3
+  SSD1306_CMD_SETOSCFREQ  = $D5
+  SSD1306_CMD_CHARGEPUMP  = $8D
+
+
+'US2066
 'Command set: (POR) indicates Power On Reset, or default value.
 '-FUNDAMENTAL COMMAND SET-------
   'SD bit set 0

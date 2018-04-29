@@ -22,16 +22,31 @@ OBJ
   ser   : "com.serial.terminal"
   time  : "time"
   oled  : "display.oled.128x32.i2c"
+  debug : "debug"
 
 VAR
 
 
-PUB Main
+PUB Main | i
 
+  Setup
+  ser.Clear
+  ser.Str (string("Press a key", ser#NL))
+  ser.CharIn
+  
+'  repeat
+{    i := oled.dtest
+    ser.Bin (i, 8)
+    ser.NewLine
+    time.mSleep (50)}
+  oled.OnePix (16)
+  debug.LEDFast (27)
 
+  
 PUB Setup
 
   oled.Start (SCL, SDA, I2C_HZ)
+  oled.Setup
   ser.Start (115_200)
   
 
