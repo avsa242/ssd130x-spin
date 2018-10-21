@@ -24,11 +24,6 @@ CON
     SSD1306_HEIGHT  = 32
     BUFFSZ          = ((SSD1306_WIDTH * SSD1306_HEIGHT)/8)
 
-
-VAR
-
-    long _ackbit
-
 OBJ
 
     core  : "core.con.ssd1306"
@@ -73,8 +68,8 @@ PUB Defaults
     SetDisplayStartLine(0)
     EnableChargePumpReg(TRUE)
     SetAddrMode (0)
-    SetSegmentRemap(1)
-    SetCOMDirection(0)
+    MirrorH(FALSE)
+    MirrorV(FALSE)
     SetCOMPinCfg(0, 0)
     SetContrast($7F)
     SetPrecharge (1, 15)
@@ -88,11 +83,11 @@ PUB Defaults
 
 PUB DisplayOn
 ' $AF
-    command1b(core#CMD_DISP_ON)
+    writeRegX(core#CMD_DISP_ON, 0, 0)
 
 PUB DisplayOff
 ' $AE
-    command1b(core#CMD_DISP_OFF)
+    writeRegX(core#CMD_DISP_OFF, 0, 0)
 
 PUB DrawCircle(buf_ptr, x0, y0, radius, color) | x, y, err, cdx, cdy
 
@@ -199,15 +194,58 @@ PUB DrawLine(buf_ptr, x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB EnableChargePumpReg(enabled)
 '8D, 14
-    case enabled
-        FALSE:
-            command(core#CMD_CHARGEPUMP)
-            writeval($10)
 
+    case ||enabled
+        0, 1: enabled := ||enabled
         OTHER:
-            command(core#CMD_CHARGEPUMP)
-            writeval($14)
-    i2c.stop
+            return
+    writeRegX(core#CMD_CHARGEPUMP, 1, lookupz(enabled: $10, $14))
+
+PUB EntireDisplayOn(enabled)
+'' $A4
+''  TRUE    - Turns on all pixels (doesn't affect GDDRAM contents)
+''  FALSE   - Displays GDDRAM contents
+    case ||enabled
+        0, 1:
+            enabled := ||enabled
+        OTHER:
+            return
+
+    writeRegX(core#CMD_RAMDISP_ON, 0, enabled)
+
+PUB InvertDisplay(enabled)
+'A6 - norm, A6|1 - inverted
+    case ||enabled
+        0, 1:
+            enabled := ||enabled
+        OTHER:
+            return
+
+    writeRegX(core#CMD_DISP_NORM, 0, enabled)
+
+PUB MirrorH(enabled)
+' $A0-$A1 bit 0
+' Set Segment Re-map: 0 or 127
+' NOTE: Only affects subsequent data - no effect on data in GDDRAM
+    case ||enabled
+        0, 1: enabled := ||enabled
+        OTHER:
+            return
+
+    writeRegX(core#CMD_SEG_MAP0, 0, enabled)
+
+PUB MirrorV(enabled)
+' $C0-$C8 bit 3
+' Set COM Output Scan Direction: FALSE or 0: normal, TRUE or 1: remapped
+' NOTE: Only affects subsequent data - no effect on data in GDDRAM
+' POR: 0
+    case ||enabled
+        0:
+        1: enabled := 8
+        OTHER:
+            return
+
+    writeRegX(core#CMD_COMDIR_NORM, 0, enabled)
 
 PUB SetAddrMode(mode)
 ' $20 bits 1..0 mask ****_**AA
@@ -218,11 +256,9 @@ PUB SetAddrMode(mode)
     case mode
         0, 1:
         OTHER:
-            mode := %10
+            return
 
-    command(core#CMD_MEM_ADDRMODE)
-    writeval(mode)
-    i2c.stop
+    writeRegX(core#CMD_MEM_ADDRMODE, 1, mode)
 
 PUB SetColumnStartEnd(column_start, column_end)
 ' $21 bits 6..0
@@ -236,10 +272,7 @@ PUB SetColumnStartEnd(column_start, column_end)
         OTHER:
             column_end := 127
 
-    command(core#CMD_SET_COLADDR)
-    writeval(column_start)
-    writeval(column_end)
-    i2c.stop
+    writeRegX(core#CMD_SET_COLADDR, 2, (column_end << 8) | column_start)
 
 PUB SetDisplayOffset(offset)
 ' $D3 bits 5..0
@@ -250,87 +283,18 @@ PUB SetDisplayOffset(offset)
         OTHER:
             offset := 0
 
-    command(core#CMD_SETDISPOFFS)
-    writeval(offset)
-    i2c.stop
+    writeRegX(core#CMD_SETDISPOFFS, 1, offset)
 
 PUB SetDisplayStartLine(start_line)'$40-$7F
 ' $40-$7F bits 5..0
 ' Set Display Start Line from 0..63
     case start_line
         0..63:
-            command1b($40 + start_line)
-
+'            command1b($40 + start_line)
         OTHER:
-            command1b($00)
-
-PUB SetMuxRatio(mux_ratio)
-'A8, 3F
-' Valid values: 16..64
-    case mux_ratio
-        16..64:
-            command(core#CMD_SETMUXRATIO)
-            writeval(mux_ratio-1)
-            i2c.stop
-
-        OTHER:
+'            command1b($00)
             return
-
-PUB SetSegmentRemap(column_addr)
-' $A0-$A1 bit 0
-' Set Segment Re-map: 0 or 127
-' NOTE: Only affects subsequent data - no effect on data in GDDRAM
-    case column_addr
-        127:
-            command1b(core#CMD_SEG_MAP0 | 127)
-
-        OTHER:
-            command1b(core#CMD_SEG_MAP0 | 0)
-
-PUB SetPageStartEnd(page_start, page_end)
-' $22 bits 2..0
-    case page_start
-        1..7:
-        OTHER:
-            page_start := 0
-
-    case page_end
-        0..6:
-        OTHER:
-            page_end := 7
-
-    command(core#CMD_SET_PAGEADDR)
-    writeval(page_start)
-    writeval(page_end)
-    i2c.stop
-
-PUB SetPrecharge(phase1_period, phase2_period)
-' $D9 bits 7..0
-' Set Pre-charge period: 1..15 DCLK, 0 is invalid
-' POR: 2 (both)
-    case phase1_period
-        1..15:
-        OTHER:
-            phase1_period := 2
-
-    case phase2_period
-        1..15:
-        OTHER:
-            phase2_period := 2
-
-    command (core#CMD_SETPRECHARGE)
-    writeval((phase2_period << 4) | phase1_period)
-
-PUB SetCOMDirection(direction)
-' $C0-$C8 bit 3
-' Set COM Output Scan Direction: 0: normal, anything else: remapped
-' POR: 0
-    case direction
-        0:
-            command1b(core#CMD_COMDIR_NORM | 0)
-
-        OTHER:
-            command1b (core#CMD_COMDIR_NORM | 8)
+    writeRegX($40, 0, start_line)
 
 PUB SetCOMPinCfg(pin_config, remap) | config
 ' $DA bits 5..4 mask 00AA_0010
@@ -349,9 +313,7 @@ PUB SetCOMPinCfg(pin_config, remap) | config
             config := config | (1 << 5)
         OTHER:
 
-    command(core#CMD_SETCOM_CFG)
-    writeval(config)
-    i2c.stop
+    writeRegX(core#CMD_SETCOM_CFG, 1, config)
 
 PUB SetContrast(contrast_level)
 ' $81 bits 7..0
@@ -361,36 +323,51 @@ PUB SetContrast(contrast_level)
         OTHER:
             contrast_level := 127
 
-    command(core#CMD_CONTRAST)
-    writeval(contrast_level)
-    i2c.stop
+    writeRegX(core#CMD_CONTRAST, 1, contrast_level)
 
-PUB EntireDisplayOn(enabled) | cmdbyte
-'A4
-    case enabled
-        TRUE:
-            cmdbyte := core#CMD_ENTDISP_ON
-        OTHER:
-            cmdbyte := core#CMD_RAMDISP_ON
-
-  command1b(cmdbyte)
-
-PUB InvertDisplay(enabled) | cmdbyte
-'A6
-    case ||enabled
-        TRUE:
-            cmdbyte := core#CMD_DISP_INVERT
-        FALSE:
-            cmdbyte := core#CMD_DISP_NORM
+PUB SetMuxRatio(mux_ratio)
+'A8, 3F
+' Valid values: 16..64
+    case mux_ratio
+        16..64:
         OTHER:
             return
-    command1b(cmdbyte)
+
+    writeRegX(core#CMD_SETMUXRATIO, 1, mux_ratio-1)
+
+PUB SetPageStartEnd(page_start, page_end)
+' $22 bits 2..0
+    case page_start
+        1..7:
+        OTHER:
+            page_start := 0
+
+    case page_end
+        0..6:
+        OTHER:
+            page_end := 7
+
+    writeRegX(core#CMD_SET_PAGEADDR, 2, (page_end << 8) | page_start)
+
+PUB SetPrecharge(phase1_period, phase2_period)
+' $D9 bits 7..0
+' Set Pre-charge period: 1..15 DCLK, 0 is invalid
+' POR: 2 (both)
+    case phase1_period
+        1..15:
+        OTHER:
+            phase1_period := 2
+
+    case phase2_period
+        1..15:
+        OTHER:
+            phase2_period := 2
+
+    writeRegX(core#CMD_SETPRECHARGE, 1, (phase2_period << 4) | phase1_period)
 
 PUB SetOSCFreq(freq)
-'D5, 80
-    command(core#CMD_SETOSCFREQ)
-    writeval(freq)
-    i2c.stop
+'D5, 80 XXX NEEDS VALIDATION
+    writeRegX(core#CMD_SETOSCFREQ, 1, freq)
 
 PUB SetVCOMHDeselectLevel(level)
 ' $DB bits 6..4
@@ -406,73 +383,47 @@ PUB SetVCOMHDeselectLevel(level)
         OTHER:
             level := %010 << 4 '0.77 * Vcc
 
-    command(core#CMD_SETVCOMDESEL)
-    writeval(level)
+    writeRegX(core#CMD_SETVCOMDESEL, 1, level)
 
 PUB StopScroll
 
-    command1b( core#CMD_STOPSCROLL)
+    writeRegX(core#CMD_STOPSCROLL, 0, 0)
 
 PUB writeBuffer(ptr_buf)
 
 '  SetColumnStartEnd (0, SSD1306_WIDTH-1)
 '  SetPageStartEnd (0, 3)
 
-    setupData
-    _ackbit := i2c.wr_block (ptr_buf, 512)
+    i2c.start
+    i2c.write (SLAVE_WR)
+    i2c.write (core#CTRLBYTE_DATA)
+    i2c.wr_block (ptr_buf, 512)
     i2c.stop
 
-PRI command1b(byte__cmd)
-
-    command(byte__cmd)
-    i2c.stop
-
-PRI command(byte__cmd)
-
-    setupWrite
-    if _ackbit == i2c#ACK
-        _ackbit := i2c.write (core#CTRLBYTE_CMD)
-    else
-        i2c.stop
-        return FALSE
-    if _ackbit == i2c#ACK
-        _ackbit := i2c.write (byte__cmd)
-    else
-        i2c.stop
-        return FALSE
-
-PRI writeval(val)
-
-    _ackbit := i2c.write (val)
-
-PRI setupData
-
-    setupWrite
-    if _ackbit == i2c#ACK
-        _ackbit := i2c.write (core#CTRLBYTE_DATA)
-    else
-        i2c.stop
-        return FALSE
-
-PRI data_one(byte__data)
-
-    setupWrite
-    if _ackbit == i2c#ACK
-        _ackbit := i2c.write (core#CTRLBYTE_DATA)
-    else
-        i2c.stop
-        return FALSE
-    if _ackbit == i2c#ACK
-        _ackbit := i2c.write (byte__data)
-    else
-        i2c.stop
-        return FALSE
-    i2c.stop
-
-PRI setupWrite
+PRI writeRegX(reg, nr_bytes, val) | cmd_packet[2]
+' Write nr_bytes to register 'reg' stored in val
+' If nr_bytes is
+'   0, It's a command that has no arguments - write the command only
+'   1, It's a command with a single byte argument - write the command, then the byte
+'   2, It's a command with two arguments - write the command, then the two bytes (encoded as a word)
+    cmd_packet.byte[0] := SLAVE_WR
+    cmd_packet.byte[1] := core#CTRLBYTE_CMD
+    case nr_bytes
+        0:
+            cmd_packet.byte[2] := reg | val 'Simple command
+        1:
+            cmd_packet.byte[2] := reg       'Command w/1-byte argument
+            cmd_packet.byte[3] := val
+        2:
+            cmd_packet.byte[2] := reg       'Command w/2-byte argument
+            cmd_packet.byte[3] := val & $FF
+            cmd_packet.byte[4] := (val >> 8) & $FF
+        OTHER:
+            return
 
     i2c.start
-    _ackbit := i2c.write (SLAVE_WR)
+    i2c.wr_block (@cmd_packet, 3 + nr_bytes)
+    i2c.stop
 
 DAT
 {

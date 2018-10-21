@@ -28,8 +28,8 @@ CON
 'SCROLLING COMMAND TABLE
     CMD_HSCROLL_R   = $26 '\
     CMD_HSCROLL_L   = $27 '- 7 byte command - send $00 dummy byte, Page start, Time interval, Page end, $00, $FF dummy bytes after this command
-    CMD_VSCROLL_R   = $29 '\
-    CMD_VSCROLL_L   = $2A '- 6 byte command - send $00 dummy byte, Page start, Time interval, Page end, Vert. scroll offset
+    CMD_SCROLL_VHR  = $29 '\
+    CMD_SCROLL_VHL  = $2A '- 6 byte command - send $00 dummy byte, Page start, Time interval, Page end, Vert. scroll offset
     CMD_STOPSCROLL  = $2E ' Stop any of the above
     CMD_STARTSCROLL = $2F ' Stop any of the above
     CMD_VSCROLL_AREA= $A3 '- 3 byte command - send no. of rows in top fixed area (bits 5..0), no. of rows in scroll area after this command (bits 6..0)
@@ -54,6 +54,8 @@ CON
 'TIMING & DRIVING SCHEME
     CMD_SETPRECHARGE= $D9 '- 2 byte command - send phase 1 period and phase 2 period after this byte
     CMD_SETVCOMDESEL= $DB '- 2 byte command - send Vcomh deselect level after this byte
+
+    CMD_NOOP        = $E3
 
 PUB null
 ''This is not a top-level object
