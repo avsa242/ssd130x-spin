@@ -1,8 +1,11 @@
 {
     --------------------------------------------
-    Filename:
-    Author:
-    Copyright (c) 20__
+    Filename: SSD1306-OLED-Demo.spin
+    Description: Demo of the ssd1306 i2c driver
+    Author: Jesse Burt
+    Copyright (c) 2018
+    Created: Apr 26, 2018
+    Updated: Oct 24, 2018
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -28,14 +31,13 @@ OBJ
     ser   : "com.serial.terminal"
     time  : "time"
     oled  : "display.oled.128x32.i2c"
-    debug : "debug"
     int   : "string.integer"
 
 VAR
 
     byte _framebuff[BUFFSZ]
-    byte _fps
-    long _fmon_cog, _fmon_stack[50]
+    byte _fps, _fps_mon_cog
+    long _fps_mon_stack[50]
     long _rndSeed
 
     long bx, by, dx, dy
@@ -45,25 +47,46 @@ PUB Main | x, y
     _fps := 0
     Setup
     ClearFrameBuffer
-    Sine1 (1000)
-'    FillScreen (1000, $FF_FF_FF_FF)
-'    Wave (1000)
-'    MEMScroller($0000, $2000)
-'    DrawBitmap (1000)
-'    DrawBitmap2 (50)
-'    LineSweep(3)
-'    LineRND (1000)
-'    PlotRND (1000)
-'    BallDemo (1000)
-'    ExpandingCircle(5)
-    ContrastDemo(2, 1)
-    oled.DisplayOff
-    halted
 
-PUB BouncingBallDemo(frames) | radius
+    Demo_Sine1 (500)
+    ClearFrameBuffer
 
-    radius := 5
+    Demo_Wave (500)
+    ClearFrameBuffer
 
+    Demo_FillScreen (500, $FF_FF_FF_FF)
+    ClearFrameBuffer
+
+    Demo_MEMScroller($1000, $2000)
+    ClearFrameBuffer
+
+    Demo_DrawBitmap (@bitmap1, 500)
+    ClearFrameBuffer
+
+    Demo_LineSweep(2)
+    ClearFrameBuffer
+
+    Demo_LineRND (500)
+    ClearFrameBuffer
+
+    Demo_PlotRND (500)
+    ClearFrameBuffer
+
+    Demo_BouncingBall (500, 5)
+    ClearFrameBuffer
+
+    Demo_ExpandingCircle(5)
+    ClearFrameBuffer
+
+    Demo_Wander (2000)
+
+    Demo_Contrast(2, 1)
+    ClearDisplayBuffer
+
+    Stop
+
+PUB Demo_BouncingBall(frames, radius)
+'' Draws a simple ball bouncing off screen edges
     bx := (rnd(127) // (WIDTH - radius * 4)) + radius * 2   'Pick a random screen location to
     by := (rnd(31) // (HEIGHT - radius * 4)) + radius * 2   ' start from
     dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
@@ -82,43 +105,26 @@ PUB BouncingBallDemo(frames) | radius
         _fps++
         ClearFrameBuffer
 
-PUB ClearDisplayBuffer
-
-    longfill(@_framebuff, $00, BUFFSZ/4)
-    oled.writeBuffer (@_framebuff)
-
-PUB ClearFrameBuffer
-
-    longfill(@_framebuff, $00, BUFFSZ/4)
-
-PUB DrawBitmap(reps)
-
+PUB Demo_DrawBitmap(addr_bitmap, reps)
+'' Continuously redraws bitmap at address 'addr_bitmap' (e.g., Demo_DrawBitmap(@bitmap1, 500)
+'' Visually unexciting - just for demonstrating the max blit speed
     repeat reps
-        bytemove(@_framebuff, @Beanie, BUFFSZ)
+        bytemove(@_framebuff, addr_bitmap, BUFFSZ)
         oled.WriteBuffer (@_framebuff)
         _fps++
 
-PUB DrawBitmap2(reps) | offset
-
+PUB Demo_ExpandingCircle(reps) | i
+'' Draws two offset circles, expanding in radius
     repeat reps
-        repeat offset from 0 to 512 step 128
-            bytemove(@_framebuff, @Beanie[offset], BUFFSZ)
-            oled.WriteBuffer (@_framebuff)
-            time.MSleep (50)
-'            _fps++
-
-PUB ExpandingCircle(reps) | i
-
-    repeat reps
-        repeat i from 1 to 31'31 to -31
+        repeat i from 1 to 31
             oled.DrawCircle (@_framebuff, WIDTH/4, HEIGHT/4, ||i, -1)
             oled.DrawCircle (@_framebuff, WIDTH/2, HEIGHT/2, ||i, -1)
             oled.writeBuffer (@_framebuff)
             _fps++
             ClearFrameBuffer
 
-PUB ContrastDemo(reps, delay_ms) | contrast_level
-
+PUB Demo_Contrast(reps, delay_ms) | contrast_level
+'' Fades out and in display contrast
     repeat reps
         repeat contrast_level from 255 to 1
             oled.SetContrast (contrast_level)
@@ -127,22 +133,24 @@ PUB ContrastDemo(reps, delay_ms) | contrast_level
             oled.SetContrast (contrast_level)
             time.MSleep (delay_ms)
 
-PUB FillScreen(reps, pattern)
-
+PUB Demo_FillScreen(reps, pattern)
+'' Fills framebuffer with 'pattern'
+'' As visually unexciting as Demo_FillScreen - similar purpose
     repeat reps
         longfill(@_framebuff, pattern, BUFFSZ/4)
         oled.writeBuffer (@_framebuff)
         _fps++
 
-PUB LineRND (reps) | x, y
-
+PUB Demo_LineRND (reps) | x, y
+'' Draws random lines with color -1 (invert)
     repeat reps
         oled.DrawLine (@_framebuff, rnd(127), rnd(31), rnd(127), rnd(31), -1)
         oled.writeBuffer (@_framebuff)
         _fps++
 
-PUB LineSweep (reps) | x, y
-
+PUB Demo_LineSweep (reps) | x, y
+'' Draws lines top left to lower-right, sweeping across the screen, then
+''  from the top-down
     repeat reps
         repeat x from 0 to 127 step 1
             oled.DrawLine (@_framebuff, x, 0, 127-x, 31, -1)
@@ -154,86 +162,100 @@ PUB LineSweep (reps) | x, y
             oled.writeBuffer (@_framebuff)
             _fps++
 
-PUB MEMScroller(start_addr, end_addr) | pos, st, en
-
+PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
+'' Dumps Propeller Hub RAM (or ROM) to the framebuffer
+'' Very meta/introspective/magic mirror-looking if dumping covers the area of RAM
+''  occupied by this program's variables!
     repeat pos from start_addr to end_addr
         bytemove(@_framebuff, pos, BUFFSZ)
         oled.writeBuffer (@_framebuff)
         _fps++
 
-PUB PlotRND (reps) | x, y
-
+PUB Demo_PlotRND (reps) | x, y
+'' Draws random pixels to the screen, with color -1 (invert)
     repeat reps
         oled.DrawPixel (@_framebuff, rnd(127), rnd(31), -1)
         oled.writeBuffer (@_framebuff)
         _fps++
 
-
-PUB Sine1(reps) | x, y, modifier, offset, j
-
-    j := 2048
-    offset := 16                                                ' Use Accel Y axis as center offset
+PUB Demo_Sine1(reps) | x, y, modifier, offset, div
+'' Draws a sine wave the length of the screen, influenced by
+''  the system counter
+    div := 4096
+    offset := 15                                    ' Offset for Y axis
 
     repeat reps
         repeat x from 0 to 127
-            modifier := (cnt / 1_000_000)                                  ' Use system counter as modifier
-            y := offset + sin(x * modifier) / j   ' Use Accel Z axis to change amplitude
+            modifier := (cnt / 1_000_000)           ' Use system counter as modifier
+            y := offset + sin(x * modifier) / div
             oled.DrawPixel(@_framebuff, x, y, 1)
         oled.writeBuffer (@_framebuff)
-        ClearDisplayBuffer
-'            x := offset + ((sin(y * modifier)) / (j / 20))   ' Use Accel Z axis to change amplitude
-'            oled.DrawPixel (@_framebuff, 127-x, 31-y, 1)
-{
-    repeat reps
-        repeat x from 0 to 127
-            y := 3 * Sin(x*2) + 16
-            oled.DrawPixel (@_framebuff, x, y, 1)
-        oled.writeBuffer (@_framebuff)
-'        ClearDisplayBuffer
-}
-PUB Cos(angle)                  'Cos angle is 13-bit ; Returns a 16-bit signed value
-    Result := sin(angle + $800)
- 
-PUB Sin(angle)                  'Sin angle is 13-bit ; Returns a 16-bit signed value
-    Result := angle << 1 & $FFE
-    if angle & $800
-       Result := word[$F000 - Result]
-    else
-       Result := word[$E000 + Result]
-    if angle & $1000
-       -Result
+        _fps++
+        ClearFrameBuffer
 
-PUB Wave(frames) | i, x, y, yf
-
+PUB Demo_Wave(frames) | i, x, y, yf
+'' Draws a simple triangular wave
     yf := 1
     repeat frames
-        repeat x from 127 to 0
-            y := y + yf
-            if y > 127
+        repeat x from 0 to XMAX
+            if y == YMAX
                 yf := -1
-            if y < 0
+            if y == 0
                 yf := 1
-            oled.DrawPixel (@_framebuff, x, y, -1)
+            y := y + yf
+            oled.DrawPixel (@_framebuff, x, y, 1)
         oled.writeBuffer (@_framebuff)
+        ClearFrameBuffer
         _fps++
 
-PUB halted
+PUB Demo_Wander(reps) | x, y, d
+'' Draws randomly wandering pixels
+    _rndSeed := cnt
+    x := XMAX/2
+    y := YMAX/2
+    repeat reps
+        case d := rnd(4)
+            1:
+                x += 1
+                if x > XMAX
+                    x := 0
+            2:
+                x -= 1
+                if x < 0
+                    x := XMAX
+            3:
+                y += 1
+                if y > YMAX
+                    y := 0
+            4:
+                y -= 1
+                if y < 0
+                    y := YMAX
+        oled.DrawPixel (@_framebuff, x, y, -1)
+        oled.writeBuffer (@_framebuff)
 
-    ser.Str (string("Press a key to power off", ser#NL))
-    ser.CharIn
-    oled.DisplayOff
-    oled.Stop
-    cogstop(_fmon_cog)
-    ser.Str (string("Halted", ser#NL))
-    debug.LEDFast (27)
+PUB ClearDisplayBuffer
+'' Clear the framebuffer and commit it to the display
+    longfill(@_framebuff, $00, BUFFSZ/4)
+    oled.writeBuffer (@_framebuff)
 
-PUB WriteBuffTerm(ptr_buf) | i
+PUB ClearFrameBuffer
+'' Clear the framebuffer only
+    longfill(@_framebuff, $00, BUFFSZ/4)
 
-    repeat i from 0 to BUFFSZ-1
-        ser.Hex (byte[ptr_buf][i], 2)
-        ser.Char (" ")
-        if lookdown(i: 127, 255, 383, 511)
-            ser.NewLine
+PUB Cos(angle)                  'Cos angle is 13-bit ; Returns a 16-bit signed value
+'' Return Cosine of angle
+    result := sin(angle + $800)
+
+PUB Sin(angle)                  'Sin angle is 13-bit ; Returns a 16-bit signed value
+
+    result := angle << 1 & $FFE
+    if angle & $800
+       result := word[$F000 - result]
+    else
+       result := word[$E000 + result]
+    if angle & $1000
+       -result
 
 PUB RND(upperlimit) | i       'Returns a random number between 0 and upperlimit
 
@@ -244,13 +266,13 @@ PUB RND(upperlimit) | i       'Returns a random number between 0 and upperlimit
 
     return i
 
-PUB fmon
-
-    ser.Position (0, 5)
+PUB fps_mon
+'' Sit in another cog and tell us (more or less) how many frames per second we're rendering
+    ser.Position (0, 4)
     ser.Str (string("FPS: "))
     repeat
-        time.Sleep (1)
-        ser.Position (5, 5)
+        time.MSleep (1000)
+        ser.Position (5, 4)
         ser.Str (int.DecZeroed (_fps, 3))
         _fps := 0
 
@@ -267,11 +289,27 @@ PUB Setup
         oled.Stop
         time.MSleep (100)
         ser.Stop
-        debug.LEDSlow (cfg#LED1)
     ser.Str (string("Ready", ser#NL))
-    _fmon_cog := cognew(fmon, @_fmon_stack)  'Start framerate monitor in another cog/core
+    _fps_mon_cog := cognew(fps_mon, @_fps_mon_stack)  'Start framerate monitor in another cog/core
+
+PUB Stop
+
+    ser.Position (0, 6)
+    ser.Str (string("Press a key to power off", ser#NL))
+    ser.CharIn
+
+    oled.DisplayOff
+    oled.Stop
+
+    cogstop(_fps_mon_cog)
+
+    ser.Position (0, 7)
+    ser.Str (string("Halted", ser#NL))
+    time.MSleep (1)
+    ser.Stop
 
 DAT
+
 
     bitmap1 byte    $F,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,$F,{
 }                   $F,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,$F,{
@@ -282,71 +320,6 @@ DAT
 }                   $A,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,$F,{
 }                   $A,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,$F,{
 }                   $A,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,$F
-                                                                                        '16*8= 128
-    Beanie  byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $80, $C0
-            byte    $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $80, $80, $80, $80, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $80
-            byte    $80, $00, $00, $00, $80, $80, $80, $80, $C0, $C0, $C0, $C0, $C0, $E0, $E0, $E0
-            byte    $E0, $E0, $F0, $F0, $F0, $F0, $F0, $F0, $F0, $F0, $F0, $F0, $F0, $F0, $F0, $F0
-            byte    $E0, $E0, $80, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $0F, $1F, $3F
-            byte    $3F, $7F, $7F, $7F, $7F, $7F, $7F, $7F, $7F, $7F, $7F, $7F, $3F, $3F, $3F, $3F
-            byte    $3F, $3F, $1F, $1F, $1E, $1E, $1E, $0E, $0E, $0E, $0E, $06, $06, $06, $F7, $FF
-            byte    $FF, $F7, $03, $03, $03, $03, $03, $03, $03, $03, $03, $03, $03, $03, $03, $07
-            byte    $07, $07, $07, $07, $07, $0F, $0F, $0F, $0F, $0F, $1F, $1F, $1F, $1F, $1F, $1F
-            byte    $0F, $0F, $07, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $80, $C0, $C0, $E0, $E0, $60, $70, $30, $30, $18, $18, $C8, $FF, $FF, $FF
-            byte    $FF, $FF, $FF, $C8, $18, $18, $30, $30, $70, $60, $E0, $E0, $C0, $C0, $80, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $80, $C0, $E0, $F0, $F8, $FC, $FE, $7F
-            byte    $3F, $0F, $07, $03, $01, $00, $00, $00, $00, $C0, $FC, $FF, $FF, $FF, $FF, $FF
-            byte    $FF, $FF, $FF, $FF, $FF, $FC, $C0, $00, $00, $00, $00, $01, $03, $07, $0F, $3F
-            byte    $7F, $FE, $FC, $F8, $F0, $E0, $C0, $80, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $80, $E0, $F8, $FC, $FF, $FF, $FF, $FF, $FF, $3F, $07, $01, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $F8, $FF, $FF, $FF, $FF, $FF, $FF, $FF
-            byte    $FF, $FF, $FF, $FF, $FF, $FF, $FF, $F8, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $01, $07, $3F, $FF, $FF, $FF, $FF, $FF, $FC, $F8, $E0, $80, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $C0, $FC, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $BF, $81, $80, $80, $80, $C0
-            byte    $C0, $C0, $C0, $C0, $C0, $C0, $C0, $F0, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
-            byte    $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $F0, $C0, $C0, $C0, $C0, $C0, $C0, $C0
-            byte    $C0, $80, $80, $80, $81, $BF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FC, $C0, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $78, $FF, $FF, $FF, $FF, $FF, $FF, $CF, $CF, $CF, $CF, $CF, $C7, $87, $87, $87
-            byte    $87, $87, $87, $87, $87, $87, $87, $07, $03, $03, $03, $03, $03, $03, $03, $03
-            byte    $03, $03, $03, $03, $03, $03, $03, $03, $07, $87, $87, $87, $87, $87, $87, $87
-            byte    $87, $87, $87, $C7, $CF, $CF, $CF, $CF, $CF, $FF, $FF, $FF, $FF, $FF, $FF, $78
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $01, $01, $03, $03, $03, $03, $03, $07, $07, $07, $07, $07, $07, $07
-            byte    $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F
-            byte    $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $0F
-            byte    $07, $07, $07, $07, $07, $07, $07, $03, $03, $03, $03, $03, $01, $01, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-            byte    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00'63
 
 {
     --------------------------------------------------------------------------------------------------------
