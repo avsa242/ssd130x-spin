@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Oct 24, 2018
+    Updated: Oct 27, 2018
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -27,11 +27,11 @@ CON
 
 OBJ
 
-    cfg   : "core.con.client.flip"
-    ser   : "com.serial.terminal"
-    time  : "time"
-    oled  : "display.oled.128x32.i2c"
-    int   : "string.integer"
+    cfg : "core.con.client.flip"
+    ser : "com.serial.terminal"
+    time: "time"
+    oled: "display.oled.128x32.i2c"
+    int : "string.integer"
 
 VAR
 
@@ -42,7 +42,7 @@ VAR
 
     long bx, by, dx, dy
 
-PUB Main | x, y
+PUB Main | x, y, ch
 
     _fps := 0
     Setup
@@ -79,6 +79,10 @@ PUB Main | x, y
     ClearFrameBuffer
 
     Demo_Wander (2000)
+    ClearFrameBuffer
+
+    Demo_Text (300)
+    ClearFrameBuffer
 
     Demo_Contrast(2, 1)
     ClearDisplayBuffer
@@ -101,7 +105,7 @@ PUB Demo_BouncingBall(frames, radius)
             dx *= -1
 
         oled.DrawCircle (@_framebuff, bx, by, radius, 1)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
         _fps++
         ClearFrameBuffer
 
@@ -110,7 +114,7 @@ PUB Demo_DrawBitmap(addr_bitmap, reps)
 '' Visually unexciting - just for demonstrating the max blit speed
     repeat reps
         bytemove(@_framebuff, addr_bitmap, BUFFSZ)
-        oled.WriteBuffer (@_framebuff)
+        oled.writeBuffer
         _fps++
 
 PUB Demo_ExpandingCircle(reps) | i
@@ -119,7 +123,7 @@ PUB Demo_ExpandingCircle(reps) | i
         repeat i from 1 to 31
             oled.DrawCircle (@_framebuff, WIDTH/4, HEIGHT/4, ||i, -1)
             oled.DrawCircle (@_framebuff, WIDTH/2, HEIGHT/2, ||i, -1)
-            oled.writeBuffer (@_framebuff)
+            oled.writeBuffer
             _fps++
             ClearFrameBuffer
 
@@ -138,14 +142,14 @@ PUB Demo_FillScreen(reps, pattern)
 '' As visually unexciting as Demo_FillScreen - similar purpose
     repeat reps
         longfill(@_framebuff, pattern, BUFFSZ/4)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
         _fps++
 
 PUB Demo_LineRND (reps) | x, y
 '' Draws random lines with color -1 (invert)
     repeat reps
         oled.DrawLine (@_framebuff, rnd(127), rnd(31), rnd(127), rnd(31), -1)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
         _fps++
 
 PUB Demo_LineSweep (reps) | x, y
@@ -154,12 +158,12 @@ PUB Demo_LineSweep (reps) | x, y
     repeat reps
         repeat x from 0 to 127 step 1
             oled.DrawLine (@_framebuff, x, 0, 127-x, 31, -1)
-            oled.writeBuffer (@_framebuff)
+            oled.writeBuffer
             _fps++
 
         repeat y from 0 to 31 step 1
             oled.DrawLine (@_framebuff, 127, y, 0, 31-y, -1)
-            oled.writeBuffer (@_framebuff)
+            oled.writeBuffer
             _fps++
 
 PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
@@ -168,14 +172,14 @@ PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
 ''  occupied by this program's variables!
     repeat pos from start_addr to end_addr
         bytemove(@_framebuff, pos, BUFFSZ)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
         _fps++
 
 PUB Demo_PlotRND (reps) | x, y
 '' Draws random pixels to the screen, with color -1 (invert)
     repeat reps
         oled.DrawPixel (@_framebuff, rnd(127), rnd(31), -1)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
         _fps++
 
 PUB Demo_Sine1(reps) | x, y, modifier, offset, div
@@ -189,9 +193,30 @@ PUB Demo_Sine1(reps) | x, y, modifier, offset, div
             modifier := (cnt / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
             oled.DrawPixel(@_framebuff, x, y, 1)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
         _fps++
         ClearFrameBuffer
+
+PUB Demo_Text(reps) | col, row, ch, st
+'' Sequentially draws the whole font table to the screen, for half of 'reps'
+''  then random characters for the second half
+    ch := $00
+    repeat reps/2
+        repeat row from 0 to 3
+            repeat col from 0 to 15
+                ch++
+                if ch > $7F
+                    ch := $00
+                oled.Char (col, row, ch)
+        oled.writeBuffer
+        _fps++
+
+    repeat reps/2
+        repeat row from 0 to 3
+            repeat col from 0 to 15
+                oled.Char (col, row, rnd(127))
+        oled.writeBuffer
+        _fps++
 
 PUB Demo_Wave(frames) | i, x, y, yf
 '' Draws a simple triangular wave
@@ -204,7 +229,7 @@ PUB Demo_Wave(frames) | i, x, y, yf
                 yf := 1
             y := y + yf
             oled.DrawPixel (@_framebuff, x, y, 1)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
         ClearFrameBuffer
         _fps++
 
@@ -232,12 +257,12 @@ PUB Demo_Wander(reps) | x, y, d
                 if y < 0
                     y := YMAX
         oled.DrawPixel (@_framebuff, x, y, -1)
-        oled.writeBuffer (@_framebuff)
+        oled.writeBuffer
 
 PUB ClearDisplayBuffer
 '' Clear the framebuffer and commit it to the display
     longfill(@_framebuff, $00, BUFFSZ/4)
-    oled.writeBuffer (@_framebuff)
+    oled.writeBuffer
 
 PUB ClearFrameBuffer
 '' Clear the framebuffer only
@@ -284,6 +309,7 @@ PUB Setup
     if oled.Startx (SSD1306_SCL, SSD1306_SDA, SSD1306_HZ)
         oled.Defaults
         ser.Str (string("SSD1306 object started", ser#NL))
+        oled.SetDrawBuffer (@_framebuff)
     else
         ser.Str (string("SSD1306 object failed to start - halting"))
         oled.Stop

@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Oct 21, 2018
+    Updated: Oct 27, 2018
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,9 +26,15 @@ CON
 
 OBJ
 
-    core  : "core.con.ssd1306"
-    time  : "time"
-    i2c   : "jm_i2c_fast_2018"
+    core    : "core.con.ssd1306"
+    time    : "time"
+    i2c     : "jm_i2c_fast_2018"
+'    font    : "font.5x8.nexus-like.spin"
+    font    : "font.5x8.thomaspsullivan.spin"
+
+VAR
+
+    long _draw_buffer
 
 PUB Null
 ''This is not a top-level object
@@ -192,6 +198,13 @@ PUB DrawLine(buf_ptr, x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
         OTHER:
             return
 
+PUB Char (col, row, ch) | i
+'' Write a character to the display @ row and column
+    col &= $F
+    row &= $3
+    repeat i from 0 to 7
+        byte[_draw_buffer][row << 7{* 128} + col << 3{* 8} + i] := byte[font.baseaddr + 8 * ch + i]
+
 PUB EnableChargePumpReg(enabled)
 '8D, 14
 
@@ -296,6 +309,10 @@ PUB SetDisplayStartLine(start_line)'$40-$7F
             return
     writeRegX($40, 0, start_line)
 
+PUB SetDrawBuffer(address)
+
+    _draw_buffer := address
+
 PUB SetCOMPinCfg(pin_config, remap) | config
 ' $DA bits 5..4 mask 00AA_0010
 ' Set COM Pins Hardware Configuration and Left/Right Remap
@@ -389,7 +406,18 @@ PUB StopScroll
 
     writeRegX(core#CMD_STOPSCROLL, 0, 0)
 
-PUB writeBuffer(ptr_buf)
+PUB writeBuffer
+
+'  SetColumnStartEnd (0, SSD1306_WIDTH-1)
+'  SetPageStartEnd (0, 3)
+
+    i2c.start
+    i2c.write (SLAVE_WR)
+    i2c.write (core#CTRLBYTE_DATA)
+    i2c.wr_block (_draw_buffer, 512)
+    i2c.stop
+
+PUB writeAltBuffer(ptr_buf)
 
 '  SetColumnStartEnd (0, SSD1306_WIDTH-1)
 '  SetPageStartEnd (0, 3)
