@@ -20,10 +20,6 @@ CON
     DEF_SDA         = 29
     DEF_HZ          = 400_000
 
-    SSD1306_WIDTH   = 128
-    SSD1306_HEIGHT  = 32'64
-    BUFFSZ          = ((SSD1306_WIDTH * SSD1306_HEIGHT)/8)
-
 OBJ
 
     core    : "core.con.ssd1306"
@@ -35,23 +31,27 @@ OBJ
 VAR
 
     long _draw_buffer
+    byte _disp_width, _disp_height
+    word _buffsz
 
 PUB Null
 ''This is not a top-level object
 
-PUB Start: okay                                                 'Default to "standard" Propeller I2C pins and 400kHz
+PUB Start(width, height): okay                                  'Default to "standard" Propeller I2C pins and 400kHz
 
-    okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ)
+    okay := Startx (width, height, DEF_SCL, DEF_SDA, DEF_HZ)
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
+PUB Startx(width, height, SCL_PIN, SDA_PIN, I2C_HZ): okay
 
+    _disp_width := width
+    _disp_height := height
+    _buffsz := ((_disp_width * _disp_height)/8)
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if I2C_HZ =< core#I2C_MAX_FREQ
             if okay := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
                 time.MSleep (20)
                 if Ping                                         'Response from device?
                     return okay
-
     return FALSE                                                'If we got here, something went wrong
 
 PUB Stop
@@ -69,7 +69,7 @@ PUB Defaults
 
     DisplayOff
     SetOSCFreq ($80)
-    SetMuxRatio(SSD1306_HEIGHT-1)
+    SetMuxRatio(_disp_height-1)
     SetDisplayOffset(0)
     SetDisplayStartLine(0)
     EnableChargePumpReg(TRUE)
@@ -83,7 +83,7 @@ PUB Defaults
     EntireDisplayOn(FALSE)
     InvertDisplay(FALSE)
     StopScroll
-    SetColumnStartEnd (0, SSD1306_WIDTH-1)'*
+    SetColumnStartEnd (0, _disp_width-1)'*
     SetPageStartEnd (0, 3)' 0, 7 - 64  0, 3 - 32
     DisplayOn
 
@@ -95,7 +95,19 @@ PUB DisplayOff
 ' $AE
     writeRegX(core#CMD_DISP_OFF, 0, 0)
 
-PUB DrawCircle(buf_ptr, x0, y0, radius, color) | x, y, err, cdx, cdy
+PUB BufferSize
+
+    return _buffsz
+
+PUB ClearDrawBuffer
+
+    longfill(_draw_buffer, $00, _buffsz/4)
+
+PUB DrawBitmap(addr_bitmap)
+'' Blits bitmap to display buffer
+    bytemove(_draw_buffer, addr_bitmap, _buffsz)
+
+PUB DrawCircle(x0, y0, radius, color) | x, y, err, cdx, cdy
 
     x := radius - 1
     y := 0
@@ -104,14 +116,14 @@ PUB DrawCircle(buf_ptr, x0, y0, radius, color) | x, y, err, cdx, cdy
     err := cdx - (radius << 1)
 
     repeat while (x => y)
-        DrawPixel(buf_ptr, x0 + x, y0 + y, color)
-        DrawPixel(buf_ptr, x0 + y, y0 + x, color)
-        DrawPixel(buf_ptr, x0 - y, y0 + x, color)
-        DrawPixel(buf_ptr, x0 - x, y0 + y, color)
-        DrawPixel(buf_ptr, x0 - x, y0 - y, color)
-        DrawPixel(buf_ptr, x0 - y, y0 - x, color)
-        DrawPixel(buf_ptr, x0 + y, y0 - x, color)
-        DrawPixel(buf_ptr, x0 + x, y0 - y, color)
+        DrawPixel(x0 + x, y0 + y, color)
+        DrawPixel(x0 + y, y0 + x, color)
+        DrawPixel(x0 - y, y0 + x, color)
+        DrawPixel(x0 - x, y0 + y, color)
+        DrawPixel(x0 - x, y0 - y, color)
+        DrawPixel(x0 - y, y0 - x, color)
+        DrawPixel(x0 + y, y0 - x, color)
+        DrawPixel(x0 + x, y0 - y, color)
 
         if (err =< 0)
             y++
@@ -123,22 +135,24 @@ PUB DrawCircle(buf_ptr, x0, y0, radius, color) | x, y, err, cdx, cdy
             cdx += 2
             err += cdx - (radius << 1)
 
-PUB DrawPixel (buf_ptr, x, y, c)
+PUB DrawPattern'XXX IMPLEMENT ME
 
-    if ((x < 0) or (x => SSD1306_WIDTH) or (y < 0) or (y => SSD1306_HEIGHT))
+PUB DrawPixel (x, y, c)
+
+    if ((x < 0) or (x => _disp_width) or (y < 0) or (y => _disp_height))
         return
 
     case c
         1:
-            byte[buf_ptr][x + (y/8)*SSD1306_WIDTH] |= (1 << (y&7))
+            byte[_draw_buffer][x + (y/8)*_disp_width] |= (1 << (y&7))'try y>>3 instead of y/8
         0:
-            byte[buf_ptr][x + (y/8)*SSD1306_WIDTH] &= (1 << (y&7))
+            byte[_draw_buffer][x + (y/8)*_disp_width] &= (1 << (y&7))
         -1:
-            byte[buf_ptr][x + (y/8)*SSD1306_WIDTH] ^= (1 << (y&7))
+            byte[_draw_buffer][x + (y/8)*_disp_width] ^= (1 << (y&7))
         OTHER:
             return
 
-PUB DrawLine(buf_ptr, x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
+PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
     ddx := ||(x2-x1)
     ddy := ||(y2-y1)
@@ -155,7 +169,7 @@ PUB DrawLine(buf_ptr, x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
     case c
         1:
             repeat until ((x1 == x2) AND (y1 == y2))
-                byte[buf_ptr][x1 + (y1/8)*SSD1306_WIDTH] |= (1 << (y1&7))
+                byte[_draw_buffer][x1 + (y1/8)*_disp_width] |= (1 << (y1&7))
 
                 e2 := err << 1
 
@@ -169,7 +183,7 @@ PUB DrawLine(buf_ptr, x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
         0:
             repeat until ((x1 == x2) AND (y1 == y2))
-                byte[buf_ptr][x1 + (y1/8)*SSD1306_WIDTH] &= (1 << (y1&7))
+                byte[_draw_buffer][x1 + (y1/8)*_disp_width] &= (1 << (y1&7))
 
                 e2 := err << 1
 
@@ -183,7 +197,7 @@ PUB DrawLine(buf_ptr, x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
         -1:
             repeat until ((x1 == x2) AND (y1 == y2))
-                byte[buf_ptr][x1 + (y1/8)*SSD1306_WIDTH] ^= (1 << (y1&7))
+                byte[_draw_buffer][x1 + (y1/8)*_disp_width] ^= (1 << (y1&7))
 
                 e2 := err << 1
 
@@ -203,7 +217,7 @@ PUB Char (col, row, ch) | i
     col &= $F
     row &= $3
     repeat i from 0 to 7
-        byte[_draw_buffer][row << 7{* 128} + col << 3{* 8} + i] := byte[font.baseaddr + 8 * ch + i]
+        byte[_draw_buffer][row << 7 + col << 3 + i] := byte[font.baseaddr + 8 * ch + i]
 
 PUB EnableChargePumpReg(enabled)
 '8D, 14
@@ -311,7 +325,7 @@ PUB SetDisplayStartLine(start_line)'$40-$7F
 
 PUB SetDrawBuffer(address)
 
-    _draw_buffer := address
+    return _draw_buffer := address
 
 PUB SetCOMPinCfg(pin_config, remap) | config
 ' $DA bits 5..4 mask 00AA_0010
@@ -408,24 +422,24 @@ PUB StopScroll
 
 PUB writeBuffer
 
-'  SetColumnStartEnd (0, SSD1306_WIDTH-1)
+'  SetColumnStartEnd (0, _disp_width-1)
 '  SetPageStartEnd (0, 3)
 
     i2c.start
     i2c.write (SLAVE_WR)
     i2c.write (core#CTRLBYTE_DATA)
-    i2c.wr_block (_draw_buffer, BUFFSZ{512})
+    i2c.wr_block (_draw_buffer, _buffsz{512})
     i2c.stop
 
 PUB writeAltBuffer(ptr_buf)
 
-'  SetColumnStartEnd (0, SSD1306_WIDTH-1)
+'  SetColumnStartEnd (0, _disp_width-1)
 '  SetPageStartEnd (0, 3)
 
     i2c.start
     i2c.write (SLAVE_WR)
     i2c.write (core#CTRLBYTE_DATA)
-    i2c.wr_block (ptr_buf, BUFFSZ{512})
+    i2c.wr_block (ptr_buf, _buffsz{512})
     i2c.stop
 
 PRI writeRegX(reg, nr_bytes, val) | cmd_packet[2]

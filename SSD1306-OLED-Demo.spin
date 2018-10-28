@@ -19,9 +19,9 @@ CON
     SSD1306_SDA = 29
     SSD1306_HZ  = 1_000_000
 
-    WIDTH       = oled#SSD1306_WIDTH
-    HEIGHT      = oled#SSD1306_HEIGHT
-    BUFFSZ      = oled#BUFFSZ
+    WIDTH       = 128
+    HEIGHT      = 32
+    BUFFSZ      = (WIDTH * HEIGHT) / 8
     XMAX        = WIDTH-1
     YMAX        = HEIGHT-1
 
@@ -46,88 +46,85 @@ PUB Main | x, y, ch
 
     _fps := 0
     Setup
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_Sine (500)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_Wave (500)
-    ClearFrameBuffer
-
-    Demo_FillScreen (500, $FF_FF_FF_FF)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_MEMScroller($1000, $2000)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_DrawBitmap (@bitmap1, 500)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_LineSweep(2)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_LineRND (500)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_PlotRND (500)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_BouncingBall (500, 5)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_ExpandingCircle(5)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_Wander (2000)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_Text (300)
-    ClearFrameBuffer
+    ClearScreen
 
     Demo_Contrast(2, 1)
-    ClearDisplayBuffer
+    ClearScreen
 
     Stop
 
 PUB Demo_BouncingBall(frames, radius)
 '' Draws a simple ball bouncing off screen edges
-    bx := (rnd(XMAX) // (WIDTH - radius * 4)) + radius * 2   'Pick a random screen location to
-    by := (rnd(YMAX) // (HEIGHT - radius * 4)) + radius * 2   ' start from
+    bx := (rnd(XMAX) // (WIDTH - radius * 4)) + radius * 2  'Pick a random screen location to
+    by := (rnd(YMAX) // (HEIGHT - radius * 4)) + radius * 2 ' start from
     dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
     dy := rnd(4) // 2 * 2 - 1                               ' start moving
 
     repeat frames
         bx += dx
         by += dy
-        if (by =< radius OR by => HEIGHT - radius)  'If we reach the top or bottom of the screen,
-            dy *= -1                                ' change direction
-        if (bx =< radius OR bx => WIDTH - radius)   'Ditto with the left or right sides
+        if (by =< radius OR by => HEIGHT - radius)          'If we reach the top or bottom of the screen,
+            dy *= -1                                        ' change direction
+        if (bx =< radius OR bx => WIDTH - radius)           'Ditto with the left or right sides
             dx *= -1
 
-        oled.DrawCircle (@_framebuff, bx, by, radius, 1)
+        oled.DrawCircle (bx, by, radius, 1)
         oled.writeBuffer
         _fps++
-        ClearFrameBuffer
+        oled.ClearDrawBuffer
 
 PUB Demo_DrawBitmap(addr_bitmap, reps)' XXX stock bitmap unsuitable for 64-height display
 '' Continuously redraws bitmap at address 'addr_bitmap' (e.g., Demo_DrawBitmap(@bitmap1, 500)
 '' Visually unexciting - just for demonstrating the max blit speed
     repeat reps
-        bytemove(@_framebuff, addr_bitmap, BUFFSZ)
+'        bytemove(@_framebuff, addr_bitmap, BUFFSZ)
+        oled.DrawBitmap (addr_bitmap)
         oled.writeBuffer
         _fps++
 
 PUB Demo_ExpandingCircle(reps) | i, x, y
-'' Draws two offset circles, expanding in radius
+'' Draws circles at random locations, expanding in radius
     repeat reps
         x := rnd(XMAX)
         y := rnd(YMAX)
         repeat i from 1 to 31
-            oled.DrawCircle (@_framebuff, x{WIDTH/4}, y{HEIGHT/4}, ||i, -1)
-'            oled.DrawCircle (@_framebuff, rnd(XMAX){WIDTH/2}, rnd(YMAX){HEIGHT/2}, ||i, -1)
+            oled.DrawCircle (x{WIDTH/4}, y{HEIGHT/4}, ||i, -1)
             oled.writeBuffer
             _fps++
-            ClearFrameBuffer
+            oled.ClearDrawBuffer
 
 PUB Demo_Contrast(reps, delay_ms) | contrast_level
 '' Fades out and in display contrast
@@ -139,18 +136,10 @@ PUB Demo_Contrast(reps, delay_ms) | contrast_level
             oled.SetContrast (contrast_level)
             time.MSleep (delay_ms)
 
-PUB Demo_FillScreen(reps, pattern)
-'' Fills framebuffer with 'pattern'
-'' As visually unexciting as Demo_FillScreen - similar purpose
-    repeat reps
-        longfill(@_framebuff, pattern, BUFFSZ/4)
-        oled.writeBuffer
-        _fps++
-
 PUB Demo_LineRND (reps)' | x, y
 '' Draws random lines with color -1 (invert)
     repeat reps
-        oled.DrawLine (@_framebuff, rnd(XMAX{WIDTH}), rnd(YMAX{empty??}), rnd(XMAX), rnd(YMAX), -1)
+        oled.DrawLine (rnd(XMAX{WIDTH}), rnd(YMAX{empty??}), rnd(XMAX), rnd(YMAX), -1)
         oled.writeBuffer
         _fps++
 
@@ -159,12 +148,12 @@ PUB Demo_LineSweep (reps) | x, y
 ''  from the top-down
     repeat reps
         repeat x from 0 to XMAX step 1
-            oled.DrawLine (@_framebuff, x, 0, XMAX-x, YMAX, -1)
+            oled.DrawLine (x, 0, XMAX-x, YMAX, -1)
             oled.writeBuffer
             _fps++
 
         repeat y from 0 to YMAX step 1
-            oled.DrawLine (@_framebuff, XMAX, y, 0, YMAX-y, -1)
+            oled.DrawLine (XMAX, y, 0, YMAX-y, -1)
             oled.writeBuffer
             _fps++
 
@@ -173,14 +162,15 @@ PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
 '' Very meta/introspective/magic mirror-looking if dumping covers the area of RAM
 ''  occupied by this program's variables!
     repeat pos from start_addr to end_addr
-        bytemove(@_framebuff, pos, BUFFSZ)
+'        bytemove(@_framebuff, pos, BUFFSZ)
+        oled.DrawBitmap (pos)
         oled.writeBuffer
         _fps++
 
 PUB Demo_PlotRND (reps) | x, y
 '' Draws random pixels to the screen, with color -1 (invert)
     repeat reps
-        oled.DrawPixel (@_framebuff, rnd(XMAX), rnd(YMAX), -1)
+        oled.DrawPixel (rnd(XMAX), rnd(YMAX), -1)
         oled.writeBuffer
         _fps++
 
@@ -196,10 +186,10 @@ PUB Demo_Sine(reps) | x, y, modifier, offset, div
         repeat x from 0 to XMAX
             modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
-            oled.DrawPixel(@_framebuff, x, y, 1)
+            oled.DrawPixel(x, y, 1)
         oled.writeBuffer
         _fps++
-        ClearFrameBuffer
+        oled.ClearDrawBuffer
 
 PUB Demo_Text(reps) | col, row, ch, st'XXX FIX MAX ROW+COL
 '' Sequentially draws the whole font table to the screen, for half of 'reps'
@@ -222,20 +212,21 @@ PUB Demo_Text(reps) | col, row, ch, st'XXX FIX MAX ROW+COL
         oled.writeBuffer
         _fps++
 
-PUB Demo_Wave(frames) | i, x, y, yf
+PUB Demo_Wave(frames) | x, y, ydir
 '' Draws a simple triangular wave
-    yf := 1
+    ydir := 1
+    y := 0
     repeat frames
         repeat x from 0 to XMAX
             if y == YMAX
-                yf := -1
+                ydir := -1
             if y == 0
-                yf := 1
-            y := y + yf
-            oled.DrawPixel (@_framebuff, x, y, 1)
+                ydir := 1
+            y := y + ydir
+            oled.DrawPixel (x, y, 1)
         oled.writeBuffer
-        ClearFrameBuffer
         _fps++
+        oled.ClearDrawBuffer
 
 PUB Demo_Wander(reps) | x, y, d
 '' Draws randomly wandering pixels
@@ -260,17 +251,13 @@ PUB Demo_Wander(reps) | x, y, d
                 y -= 1
                 if y < 0
                     y := YMAX
-        oled.DrawPixel (@_framebuff, x, y, -1)
+        oled.DrawPixel (x, y, -1)
         oled.writeBuffer
 
-PUB ClearDisplayBuffer
-'' Clear the framebuffer and commit it to the display
-    longfill(@_framebuff, $00, BUFFSZ/4)
-    oled.writeBuffer
+PUB ClearScreen
 
-PUB ClearFrameBuffer
-'' Clear the framebuffer only
-    longfill(@_framebuff, $00, BUFFSZ/4)
+    oled.ClearDrawBuffer
+    oled.writeBuffer
 
 PUB Cos(angle)                  'Cos angle is 13-bit ; Returns a 16-bit signed value
 '' Return Cosine of angle
@@ -310,16 +297,17 @@ PUB Setup
     repeat until ser.Start (115_200)
     ser.Clear
     ser.Str (string("Serial terminal started", ser#NL))
-    if oled.Startx (SSD1306_SCL, SSD1306_SDA, SSD1306_HZ)
+    if oled.Startx (WIDTH, HEIGHT, SSD1306_SCL, SSD1306_SDA, SSD1306_HZ)
         oled.Defaults
-        ser.Str (string("SSD1306 object started", ser#NL))
-        oled.SetDrawBuffer (@_framebuff)
+        ser.Str (string("SSD1306 object started. Draw buffer @"))
+        ser.Hex (oled.SetDrawBuffer (@_framebuff), 8)
+
     else
         ser.Str (string("SSD1306 object failed to start - halting"))
         oled.Stop
         time.MSleep (100)
         ser.Stop
-    ser.Str (string("Ready", ser#NL))
+    ser.Str (string(" - Ready.", ser#NL))
     _fps_mon_cog := cognew(fps_mon, @_fps_mon_stack)  'Start framerate monitor in another cog/core
 
 PUB Stop
