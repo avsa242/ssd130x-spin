@@ -48,7 +48,7 @@ PUB Main | x, y, ch
     Setup
     ClearFrameBuffer
 
-    Demo_Sine1 (500)
+    Demo_Sine (500)
     ClearFrameBuffer
 
     Demo_Wave (500)
@@ -91,8 +91,8 @@ PUB Main | x, y, ch
 
 PUB Demo_BouncingBall(frames, radius)
 '' Draws a simple ball bouncing off screen edges
-    bx := (rnd(127) // (WIDTH - radius * 4)) + radius * 2   'Pick a random screen location to
-    by := (rnd(31) // (HEIGHT - radius * 4)) + radius * 2   ' start from
+    bx := (rnd(XMAX) // (WIDTH - radius * 4)) + radius * 2   'Pick a random screen location to
+    by := (rnd(YMAX) // (HEIGHT - radius * 4)) + radius * 2   ' start from
     dx := rnd(4) // 2 * 2 - 1                               'Pick a random direction to
     dy := rnd(4) // 2 * 2 - 1                               ' start moving
 
@@ -109,7 +109,7 @@ PUB Demo_BouncingBall(frames, radius)
         _fps++
         ClearFrameBuffer
 
-PUB Demo_DrawBitmap(addr_bitmap, reps)
+PUB Demo_DrawBitmap(addr_bitmap, reps)' XXX stock bitmap unsuitable for 64-height display
 '' Continuously redraws bitmap at address 'addr_bitmap' (e.g., Demo_DrawBitmap(@bitmap1, 500)
 '' Visually unexciting - just for demonstrating the max blit speed
     repeat reps
@@ -117,12 +117,14 @@ PUB Demo_DrawBitmap(addr_bitmap, reps)
         oled.writeBuffer
         _fps++
 
-PUB Demo_ExpandingCircle(reps) | i
+PUB Demo_ExpandingCircle(reps) | i, x, y
 '' Draws two offset circles, expanding in radius
     repeat reps
+        x := rnd(XMAX)
+        y := rnd(YMAX)
         repeat i from 1 to 31
-            oled.DrawCircle (@_framebuff, WIDTH/4, HEIGHT/4, ||i, -1)
-            oled.DrawCircle (@_framebuff, WIDTH/2, HEIGHT/2, ||i, -1)
+            oled.DrawCircle (@_framebuff, x{WIDTH/4}, y{HEIGHT/4}, ||i, -1)
+'            oled.DrawCircle (@_framebuff, rnd(XMAX){WIDTH/2}, rnd(YMAX){HEIGHT/2}, ||i, -1)
             oled.writeBuffer
             _fps++
             ClearFrameBuffer
@@ -145,10 +147,10 @@ PUB Demo_FillScreen(reps, pattern)
         oled.writeBuffer
         _fps++
 
-PUB Demo_LineRND (reps) | x, y
+PUB Demo_LineRND (reps)' | x, y
 '' Draws random lines with color -1 (invert)
     repeat reps
-        oled.DrawLine (@_framebuff, rnd(127), rnd(31), rnd(127), rnd(31), -1)
+        oled.DrawLine (@_framebuff, rnd(XMAX{WIDTH}), rnd(YMAX{empty??}), rnd(XMAX), rnd(YMAX), -1)
         oled.writeBuffer
         _fps++
 
@@ -156,13 +158,13 @@ PUB Demo_LineSweep (reps) | x, y
 '' Draws lines top left to lower-right, sweeping across the screen, then
 ''  from the top-down
     repeat reps
-        repeat x from 0 to 127 step 1
-            oled.DrawLine (@_framebuff, x, 0, 127-x, 31, -1)
+        repeat x from 0 to XMAX step 1
+            oled.DrawLine (@_framebuff, x, 0, XMAX-x, YMAX, -1)
             oled.writeBuffer
             _fps++
 
-        repeat y from 0 to 31 step 1
-            oled.DrawLine (@_framebuff, 127, y, 0, 31-y, -1)
+        repeat y from 0 to YMAX step 1
+            oled.DrawLine (@_framebuff, XMAX, y, 0, YMAX-y, -1)
             oled.writeBuffer
             _fps++
 
@@ -178,26 +180,28 @@ PUB Demo_MEMScroller(start_addr, end_addr) | pos, st, en
 PUB Demo_PlotRND (reps) | x, y
 '' Draws random pixels to the screen, with color -1 (invert)
     repeat reps
-        oled.DrawPixel (@_framebuff, rnd(127), rnd(31), -1)
+        oled.DrawPixel (@_framebuff, rnd(XMAX), rnd(YMAX), -1)
         oled.writeBuffer
         _fps++
 
-PUB Demo_Sine1(reps) | x, y, modifier, offset, div
+PUB Demo_Sine(reps) | x, y, modifier, offset, div
 '' Draws a sine wave the length of the screen, influenced by
 ''  the system counter
-    div := 4096
-    offset := 15                                    ' Offset for Y axis
+'    div := 8192    '16 = 512
+    div := 4096    '32 = 128
+'    div := 2048    '64 = 32
+    offset := YMAX/2                                    ' Offset for Y axis
 
     repeat reps
-        repeat x from 0 to 127
-            modifier := (cnt / 1_000_000)           ' Use system counter as modifier
+        repeat x from 0 to XMAX
+            modifier := (||cnt / 1_000_000)           ' Use system counter as modifier
             y := offset + sin(x * modifier) / div
             oled.DrawPixel(@_framebuff, x, y, 1)
         oled.writeBuffer
         _fps++
         ClearFrameBuffer
 
-PUB Demo_Text(reps) | col, row, ch, st
+PUB Demo_Text(reps) | col, row, ch, st'XXX FIX MAX ROW+COL
 '' Sequentially draws the whole font table to the screen, for half of 'reps'
 ''  then random characters for the second half
     ch := $00

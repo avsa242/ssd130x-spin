@@ -21,7 +21,7 @@ CON
     DEF_HZ          = 400_000
 
     SSD1306_WIDTH   = 128
-    SSD1306_HEIGHT  = 32
+    SSD1306_HEIGHT  = 32'64
     BUFFSZ          = ((SSD1306_WIDTH * SSD1306_HEIGHT)/8)
 
 OBJ
@@ -76,7 +76,7 @@ PUB Defaults
     SetAddrMode (0)
     MirrorH(FALSE)
     MirrorV(FALSE)
-    SetCOMPinCfg(0, 0)
+    SetCOMPinCfg(0, 0) ' 1, 0 - 64  0, 0 - 32
     SetContrast($7F)
     SetPrecharge (1, 15)
     SetVCOMHDeselectLevel ($40)
@@ -84,7 +84,7 @@ PUB Defaults
     InvertDisplay(FALSE)
     StopScroll
     SetColumnStartEnd (0, SSD1306_WIDTH-1)'*
-    SetPageStartEnd (0, 3)'*
+    SetPageStartEnd (0, 3)' 0, 7 - 64  0, 3 - 32
     DisplayOn
 
 PUB DisplayOn
@@ -346,7 +346,7 @@ PUB SetMuxRatio(mux_ratio)
 'A8, 3F
 ' Valid values: 16..64
     case mux_ratio
-        16..64:
+        16..63:
         OTHER:
             return
 
@@ -355,12 +355,12 @@ PUB SetMuxRatio(mux_ratio)
 PUB SetPageStartEnd(page_start, page_end)
 ' $22 bits 2..0
     case page_start
-        1..7:
+        0..7:{1..7}
         OTHER:
             page_start := 0
 
     case page_end
-        0..6:
+        0..7:{0..6}
         OTHER:
             page_end := 7
 
@@ -414,7 +414,7 @@ PUB writeBuffer
     i2c.start
     i2c.write (SLAVE_WR)
     i2c.write (core#CTRLBYTE_DATA)
-    i2c.wr_block (_draw_buffer, 512)
+    i2c.wr_block (_draw_buffer, BUFFSZ{512})
     i2c.stop
 
 PUB writeAltBuffer(ptr_buf)
@@ -425,7 +425,7 @@ PUB writeAltBuffer(ptr_buf)
     i2c.start
     i2c.write (SLAVE_WR)
     i2c.write (core#CTRLBYTE_DATA)
-    i2c.wr_block (ptr_buf, 512)
+    i2c.wr_block (ptr_buf, BUFFSZ{512})
     i2c.stop
 
 PRI writeRegX(reg, nr_bytes, val) | cmd_packet[2]
