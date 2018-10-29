@@ -177,9 +177,14 @@ PUB Demo_PlotRND (reps) | x, y
 PUB Demo_Sine(reps) | x, y, modifier, offset, div
 '' Draws a sine wave the length of the screen, influenced by
 ''  the system counter
-'    div := 8192    '16 = 512
-    div := 4096    '32 = 128
-'    div := 2048    '64 = 32
+    case HEIGHT
+        32:
+            div := 4096
+        64:
+            div := 2048
+        OTHER:
+            div := 2048
+
     offset := YMAX/2                                    ' Offset for Y axis
 
     repeat reps
@@ -191,13 +196,15 @@ PUB Demo_Sine(reps) | x, y, modifier, offset, div
         _fps++
         oled.ClearDrawBuffer
 
-PUB Demo_Text(reps) | col, row, ch, st'XXX FIX MAX ROW+COL
+PUB Demo_Text(reps) | col, row, maxcol, maxrow, ch, st
 '' Sequentially draws the whole font table to the screen, for half of 'reps'
 ''  then random characters for the second half
+    maxcol := (WIDTH/8)-1   'XXX In the future, pull part of this from a font def file,
+    maxrow := (HEIGHT/8)-1  ' based on its size
     ch := $00
     repeat reps/2
-        repeat row from 0 to 3
-            repeat col from 0 to 15
+        repeat row from 0 to maxrow
+            repeat col from 0 to maxcol
                 ch++
                 if ch > $7F
                     ch := $00
@@ -206,8 +213,8 @@ PUB Demo_Text(reps) | col, row, ch, st'XXX FIX MAX ROW+COL
         _fps++
 
     repeat reps/2
-        repeat row from 0 to 3
-            repeat col from 0 to 15
+        repeat row from 0 to maxrow
+            repeat col from 0 to maxcol
                 oled.Char (col, row, rnd(127))
         oled.writeBuffer
         _fps++

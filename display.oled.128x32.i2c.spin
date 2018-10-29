@@ -76,15 +76,27 @@ PUB Defaults
     SetAddrMode (0)
     MirrorH(FALSE)
     MirrorV(FALSE)
-    SetCOMPinCfg(0, 0) ' 1, 0 - 64  0, 0 - 32
+    case _disp_height
+        32:
+            SetCOMPinCfg(0, 0)
+        64:
+            SetCOMPinCfg(1, 0)
+        OTHER:
+            SetCOMPinCfg(0, 0)
     SetContrast($7F)
     SetPrecharge (1, 15)
     SetVCOMHDeselectLevel ($40)
     EntireDisplayOn(FALSE)
     InvertDisplay(FALSE)
     StopScroll
-    SetColumnStartEnd (0, _disp_width-1)'*
-    SetPageStartEnd (0, 3)' 0, 7 - 64  0, 3 - 32
+    SetColumnStartEnd (0, _disp_width-1)
+    case _disp_height
+        32:
+            SetPageStartEnd (0, 3)
+        64:
+            SetPageStartEnd (0, 7)
+        OTHER:
+            SetPageStartEnd (0, 3)
     DisplayOn
 
 PUB DisplayOn
@@ -214,8 +226,8 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB Char (col, row, ch) | i
 '' Write a character to the display @ row and column
-    col &= $F
-    row &= $3
+    col &= (_disp_width / 8) - 1
+    row &= (_disp_height / 8) - 1
     repeat i from 0 to 7
         byte[_draw_buffer][row << 7 + col << 3 + i] := byte[font.baseaddr + 8 * ch + i]
 
