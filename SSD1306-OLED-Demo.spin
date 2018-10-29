@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Oct 27, 2018
+    Updated: Oct 29, 2018
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,7 +20,7 @@ CON
     SSD1306_HZ  = 1_000_000
 
     WIDTH       = 128
-    HEIGHT      = 32
+    HEIGHT      = 64
     BUFFSZ      = (WIDTH * HEIGHT) / 8
     XMAX        = WIDTH-1
     YMAX        = HEIGHT-1
@@ -304,7 +304,7 @@ PUB Setup
     repeat until ser.Start (115_200)
     ser.Clear
     ser.Str (string("Serial terminal started", ser#NL))
-    if oled.Startx (WIDTH, HEIGHT, SSD1306_SCL, SSD1306_SDA, SSD1306_HZ)
+    if oled.Startx (WIDTH, HEIGHT, SSD1306_SCL, SSD1306_SDA, SSD1306_HZ, 0)
         oled.Defaults
         ser.Str (string("SSD1306 object started. Draw buffer @"))
         ser.Hex (oled.SetDrawBuffer (@_framebuff), 8)

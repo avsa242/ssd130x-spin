@@ -6,7 +6,7 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Oct 27, 2018
+    Updated: Oct 29, 2018
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -33,24 +33,27 @@ VAR
     long _draw_buffer
     byte _disp_width, _disp_height
     word _buffsz
+    byte _sa0
 
 PUB Null
-''This is not a top-level object
+''  This is not a top-level object
 
-PUB Start(width, height): okay                                  'Default to "standard" Propeller I2C pins and 400kHz
+PUB Start(width, height): okay
+''  Default to "standard" Propeller I2C pins and 400kHz
+    okay := Startx (width, height, DEF_SCL, DEF_SDA, DEF_HZ, 0)
 
-    okay := Startx (width, height, DEF_SCL, DEF_SDA, DEF_HZ)
-
-PUB Startx(width, height, SCL_PIN, SDA_PIN, I2C_HZ): okay
-
-    _disp_width := width
-    _disp_height := height
-    _buffsz := ((_disp_width * _disp_height)/8)
+PUB Startx(width, height, SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_LSB): okay
+''  Start the driver with custom settings
+''  Startx with SLAVE_LSB set to 0 for default slave address or 1 for alternate
+    _sa0 := ||(SLAVE_LSB == 1) << 1
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if I2C_HZ =< core#I2C_MAX_FREQ
             if okay := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
                 time.MSleep (20)
                 if Ping                                         'Response from device?
+                    _disp_width := width
+                    _disp_height := height
+                    _buffsz := ((_disp_width * _disp_height)/8)
                     return okay
     return FALSE                                                'If we got here, something went wrong
 
@@ -440,7 +443,7 @@ PUB writeBuffer
     i2c.start
     i2c.write (SLAVE_WR)
     i2c.write (core#CTRLBYTE_DATA)
-    i2c.wr_block (_draw_buffer, _buffsz{512})
+    i2c.wr_block (_draw_buffer, _buffsz)
     i2c.stop
 
 PUB writeAltBuffer(ptr_buf)
@@ -451,7 +454,7 @@ PUB writeAltBuffer(ptr_buf)
     i2c.start
     i2c.write (SLAVE_WR)
     i2c.write (core#CTRLBYTE_DATA)
-    i2c.wr_block (ptr_buf, _buffsz{512})
+    i2c.wr_block (ptr_buf, _buffsz)
     i2c.stop
 
 PRI writeRegX(reg, nr_bytes, val) | cmd_packet[2]
@@ -460,7 +463,7 @@ PRI writeRegX(reg, nr_bytes, val) | cmd_packet[2]
 '   0, It's a command that has no arguments - write the command only
 '   1, It's a command with a single byte argument - write the command, then the byte
 '   2, It's a command with two arguments - write the command, then the two bytes (encoded as a word)
-    cmd_packet.byte[0] := SLAVE_WR
+    cmd_packet.byte[0] := SLAVE_WR | _sa0
     cmd_packet.byte[1] := core#CTRLBYTE_CMD
     case nr_bytes
         0:
