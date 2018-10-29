@@ -48,6 +48,16 @@ PUB Main | x, y, ch
     Setup
     ClearScreen
 
+'                           |0   |5  1|0  1|5
+    oled.Str (0, 0, string("SSD1306 on the"))
+    oled.Str (0, 1, string("Parallax P8X32A"))
+    oled.Str (0, 3, int.DecPadded (WIDTH, 3))
+    oled.Str (3, 3, string("x"))
+    oled.Str (4, 3, int.DecPadded (HEIGHT, 2))
+
+    oled.writeBuffer
+    time.Sleep (5)
+
     Demo_Sine (500)
     ClearScreen
 

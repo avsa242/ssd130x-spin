@@ -154,16 +154,22 @@ PUB DrawPattern'XXX IMPLEMENT ME
 
 PUB DrawPixel (x, y, c)
 
-    if ((x < 0) or (x => _disp_width) or (y < 0) or (y => _disp_height))
-        return
+    case x
+        0.._disp_width:
+        OTHER:
+            return
+    case y
+        0.._disp_height:
+        OTHER:
+            return
 
     case c
         1:
-            byte[_draw_buffer][x + (y/8)*_disp_width] |= (1 << (y&7))'try y>>3 instead of y/8
+            byte[_draw_buffer][x + (y>>3)*_disp_width] |= (1 << (y&7))
         0:
-            byte[_draw_buffer][x + (y/8)*_disp_width] &= (1 << (y&7))
+            byte[_draw_buffer][x + (y>>3)*_disp_width] &= (1 << (y&7))
         -1:
-            byte[_draw_buffer][x + (y/8)*_disp_width] ^= (1 << (y&7))
+            byte[_draw_buffer][x + (y>>3)*_disp_width] ^= (1 << (y&7))
         OTHER:
             return
 
@@ -184,7 +190,7 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
     case c
         1:
             repeat until ((x1 == x2) AND (y1 == y2))
-                byte[_draw_buffer][x1 + (y1/8)*_disp_width] |= (1 << (y1&7))
+                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] |= (1 << (y1&7))'try >>3 instead of /8
 
                 e2 := err << 1
 
@@ -198,7 +204,7 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
         0:
             repeat until ((x1 == x2) AND (y1 == y2))
-                byte[_draw_buffer][x1 + (y1/8)*_disp_width] &= (1 << (y1&7))
+                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] &= (1 << (y1&7))
 
                 e2 := err << 1
 
@@ -212,7 +218,7 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
         -1:
             repeat until ((x1 == x2) AND (y1 == y2))
-                byte[_draw_buffer][x1 + (y1/8)*_disp_width] ^= (1 << (y1&7))
+                byte[_draw_buffer][x1 + (y1>>3{/8})*_disp_width] ^= (1 << (y1&7))
 
                 e2 := err << 1
 
@@ -229,10 +235,22 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB Char (col, row, ch) | i
 '' Write a character to the display @ row and column
-    col &= (_disp_width / 8) - 1
-    row &= (_disp_height / 8) - 1
+    col &= (_disp_width / 8) - 1    'Clamp position based on
+    row &= (_disp_height / 8) - 1   ' screen's dimensions
     repeat i from 0 to 7
         byte[_draw_buffer][row << 7 + col << 3 + i] := byte[font.baseaddr + 8 * ch + i]
+
+PUB Str (col, row, string_addr) | i
+'' Write string at string_addr to the display @ row and column.
+''  Wraps to the left at end of line and to the top-left at end of display
+    repeat i from 0 to strsize(string_addr)-1
+        char(col, row, byte[string_addr][i])
+        col++
+        if col > (_disp_width / 8) - 1
+            col := 0
+            row++
+            if row > (_disp_height / 8) - 1
+                row := 0
 
 PUB EnableChargePumpReg(enabled)
 '8D, 14
