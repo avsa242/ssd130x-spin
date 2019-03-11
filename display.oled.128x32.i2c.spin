@@ -24,8 +24,7 @@ OBJ
 
     core    : "core.con.ssd1306"
     time    : "time"
-    i2c     : "jm_i2c_fast_2018"
-'    font    : "font.5x8.nexus-like.spin"
+    i2c     : "com.i2c"
     font    : "font.5x8.thomaspsullivan.spin"
 
 VAR
@@ -36,21 +35,21 @@ VAR
     byte _sa0
 
 PUB Null
-''  This is not a top-level object
+' This is not a top-level object
 
 PUB Start(width, height): okay
-''  Default to "standard" Propeller I2C pins and 400kHz
+' Default to "standard" Propeller I2C pins and 400kHz
     okay := Startx (width, height, DEF_SCL, DEF_SDA, DEF_HZ, 0)
 
 PUB Startx(width, height, SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_LSB): okay
-''  Start the driver with custom settings
-''  Startx with SLAVE_LSB set to 0 for default slave address or 1 for alternate
+' Start the driver with custom settings
+' Startx with SLAVE_LSB set to 0 for default slave address or 1 for alternate
     _sa0 := ||(SLAVE_LSB == 1) << 1
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if I2C_HZ =< core#I2C_MAX_FREQ
             if okay := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
                 time.MSleep (20)
-                if Ping                                         'Response from device?
+                if i2c.present (SLAVE_WR | _sa0)                                         'Response from device?
                     _disp_width := width
                     _disp_height := height
                     _buffsz := ((_disp_width * _disp_height)/8)
@@ -59,67 +58,61 @@ PUB Startx(width, height, SCL_PIN, SDA_PIN, I2C_HZ, SLAVE_LSB): okay
 
 PUB Stop
 
+    DisplayOff
     i2c.terminate
-
-PUB Ping
-'' "Pings" device and returns TRUE if present
-    i2c.start
-    result := i2c.write (SLAVE_WR)
-    i2c.stop
-    return (result == i2c#ACK)
 
 PUB Defaults
 
     DisplayOff
-    SetOSCFreq ($80)
-    SetMuxRatio(_disp_height-1)
-    SetDisplayOffset(0)
-    SetDisplayStartLine(0)
-    EnableChargePumpReg(TRUE)
-    SetAddrMode (0)
+    OSCFreq ($80)
+    MuxRatio(_disp_height-1)
+    DisplayOffset(0)
+    DisplayStartLine(0)
+    ChargePumpReg(TRUE)
+    AddrMode (0)
     MirrorH(FALSE)
     MirrorV(FALSE)
     case _disp_height
         32:
-            SetCOMPinCfg(0, 0)
+            COMPinCfg(0, 0)
         64:
-            SetCOMPinCfg(1, 0)
+            COMPinCfg(1, 0)
         OTHER:
-            SetCOMPinCfg(0, 0)
-    SetContrast($7F)
-    SetPrecharge (1, 15)
-    SetVCOMHDeselectLevel ($40)
+            COMPinCfg(0, 0)
+    Contrast($7F)
+    PrechargePeriod (1, 15)
+    VCOMHDeselectLevel ($40)
     EntireDisplayOn(FALSE)
     InvertDisplay(FALSE)
     StopScroll
-    SetColumnStartEnd (0, _disp_width-1)
+    ColumnStartEnd (0, _disp_width-1)
     case _disp_height
         32:
-            SetPageStartEnd (0, 3)
+            PageRange (0, 3)
         64:
-            SetPageStartEnd (0, 7)
+            PageRange (0, 7)
         OTHER:
-            SetPageStartEnd (0, 3)
+            PageRange (0, 3)
     DisplayOn
 
 PUB DisplayOn
-' $AF
+' Power on display
     writeRegX(core#CMD_DISP_ON, 0, 0)
 
 PUB DisplayOff
-' $AE
+' Power off display
     writeRegX(core#CMD_DISP_OFF, 0, 0)
 
 PUB BufferSize
-
+' Get size of buffer
     return _buffsz
 
 PUB ClearDrawBuffer
-
+' Clear the display buffer
     longfill(_draw_buffer, $00, _buffsz/4)
 
 PUB DrawBitmap(addr_bitmap)
-'' Blits bitmap to display buffer
+' Blits bitmap to display buffer
     bytemove(_draw_buffer, addr_bitmap, _buffsz)
 
 PUB DrawCircle(x0, y0, radius, color) | x, y, err, cdx, cdy
@@ -155,11 +148,11 @@ PUB DrawPattern'XXX IMPLEMENT ME
 PUB DrawPixel (x, y, c)
 
     case x
-        0.._disp_width:
+        0.._disp_width-1:
         OTHER:
             return
     case y
-        0.._disp_height:
+        0.._disp_height-1:
         OTHER:
             return
 
@@ -234,15 +227,15 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
             return
 
 PUB Char (col, row, ch) | i
-'' Write a character to the display @ row and column
+' Write a character to the display @ row and column
     col &= (_disp_width / 8) - 1    'Clamp position based on
     row &= (_disp_height / 8) - 1   ' screen's dimensions
     repeat i from 0 to 7
         byte[_draw_buffer][row << 7 + col << 3 + i] := byte[font.baseaddr + 8 * ch + i]
 
 PUB Str (col, row, string_addr) | i
-'' Write string at string_addr to the display @ row and column.
-''  Wraps to the left at end of line and to the top-left at end of display
+' Write string at string_addr to the display @ row and column.
+'   NOTE: Wraps to the left at end of line and to the top-left at end of display
     repeat i from 0 to strsize(string_addr)-1
         char(col, row, byte[string_addr][i])
         col++
@@ -252,9 +245,8 @@ PUB Str (col, row, string_addr) | i
             if row > (_disp_height / 8) - 1
                 row := 0
 
-PUB EnableChargePumpReg(enabled)
-'8D, 14
-
+PUB ChargePumpReg(enabled)
+' Enable Charge Pump Regulator when display power enabled
     case ||enabled
         0, 1: enabled := ||enabled
         OTHER:
@@ -262,9 +254,8 @@ PUB EnableChargePumpReg(enabled)
     writeRegX(core#CMD_CHARGEPUMP, 1, lookupz(enabled: $10, $14))
 
 PUB EntireDisplayOn(enabled)
-'' $A4
-''  TRUE    - Turns on all pixels (doesn't affect GDDRAM contents)
-''  FALSE   - Displays GDDRAM contents
+' TRUE    - Turns on all pixels (doesn't affect GDDRAM contents)
+' FALSE   - Displays GDDRAM contents
     case ||enabled
         0, 1:
             enabled := ||enabled
@@ -274,7 +265,7 @@ PUB EntireDisplayOn(enabled)
     writeRegX(core#CMD_RAMDISP_ON, 0, enabled)
 
 PUB InvertDisplay(enabled)
-'A6 - norm, A6|1 - inverted
+' Invert display
     case ||enabled
         0, 1:
             enabled := ||enabled
@@ -284,8 +275,7 @@ PUB InvertDisplay(enabled)
     writeRegX(core#CMD_DISP_NORM, 0, enabled)
 
 PUB MirrorH(enabled)
-' $A0-$A1 bit 0
-' Set Segment Re-map: 0 or 127
+' Mirror display, horizontally
 ' NOTE: Only affects subsequent data - no effect on data in GDDRAM
     case ||enabled
         0, 1: enabled := ||enabled
@@ -295,8 +285,7 @@ PUB MirrorH(enabled)
     writeRegX(core#CMD_SEG_MAP0, 0, enabled)
 
 PUB MirrorV(enabled)
-' $C0-$C8 bit 3
-' Set COM Output Scan Direction: FALSE or 0: normal, TRUE or 1: remapped
+' Mirror display, vertically
 ' NOTE: Only affects subsequent data - no effect on data in GDDRAM
 ' POR: 0
     case ||enabled
@@ -307,9 +296,8 @@ PUB MirrorV(enabled)
 
     writeRegX(core#CMD_COMDIR_NORM, 0, enabled)
 
-PUB SetAddrMode(mode)
-' $20 bits 1..0 mask ****_**AA
-' Set Memory Addressing Mode from 0 to 2
+PUB AddrMode(mode)
+' Set Memory Addressing Mode
 '   0: Horizontal addressing mode
 '   1: Vertical
 '   2: Page (POR)
@@ -320,8 +308,8 @@ PUB SetAddrMode(mode)
 
     writeRegX(core#CMD_MEM_ADDRMODE, 1, mode)
 
-PUB SetColumnStartEnd(column_start, column_end)
-' $21 bits 6..0
+PUB ColumnStartEnd(column_start, column_end)
+' Set display start and end columns
     case column_start
         0..127:
         OTHER:
@@ -334,8 +322,7 @@ PUB SetColumnStartEnd(column_start, column_end)
 
     writeRegX(core#CMD_SET_COLADDR, 2, (column_end << 8) | column_start)
 
-PUB SetDisplayOffset(offset)
-' $D3 bits 5..0
+PUB DisplayOffset(offset)
 ' Set Display Offset/vertical shift from 0..63
 ' POR: 0
     case offset
@@ -345,23 +332,20 @@ PUB SetDisplayOffset(offset)
 
     writeRegX(core#CMD_SETDISPOFFS, 1, offset)
 
-PUB SetDisplayStartLine(start_line)'$40-$7F
-' $40-$7F bits 5..0
+PUB DisplayStartLine(start_line)
 ' Set Display Start Line from 0..63
     case start_line
         0..63:
-'            command1b($40 + start_line)
         OTHER:
-'            command1b($00)
             return
+
     writeRegX($40, 0, start_line)
 
-PUB SetDrawBuffer(address)
-
+PUB DrawBuffer(address)
+' Set address of display buffer
     return _draw_buffer := address
 
-PUB SetCOMPinCfg(pin_config, remap) | config
-' $DA bits 5..4 mask 00AA_0010
+PUB COMPinCfg(pin_config, remap) | config
 ' Set COM Pins Hardware Configuration and Left/Right Remap
 '  pin_config: 0: Sequential                      1: Alternative (POR)
 '       remap: 0: Disable Left/Right remap (POR)  1: Enable remap
@@ -379,62 +363,58 @@ PUB SetCOMPinCfg(pin_config, remap) | config
 
     writeRegX(core#CMD_SETCOM_CFG, 1, config)
 
-PUB SetContrast(contrast_level)
-' $81 bits 7..0
-' Set Contrast Level 0..255 (POR = 127/$7F)
-    case contrast_level
+PUB Contrast(level)
+' Set Contrast Level 0..255 (POR = 127)
+    case level
         0..255:
         OTHER:
-            contrast_level := 127
+            level := 127
 
-    writeRegX(core#CMD_CONTRAST, 1, contrast_level)
+    writeRegX(core#CMD_CONTRAST, 1, level)
 
-PUB SetMuxRatio(mux_ratio)
-'A8, 3F
+PUB MuxRatio(mux_ratio)
 ' Valid values: 16..64
     case mux_ratio
-        16..63:
+        16..64:
         OTHER:
             return
 
     writeRegX(core#CMD_SETMUXRATIO, 1, mux_ratio-1)
 
-PUB SetPageStartEnd(page_start, page_end)
-' $22 bits 2..0
-    case page_start
+PUB PageRange(pgstart, pgend)
+
+    case pgstart
         0..7:{1..7}
         OTHER:
-            page_start := 0
+            pgstart := 0
 
-    case page_end
+    case pgend
         0..7:{0..6}
         OTHER:
-            page_end := 7
+            pgend := 7
 
-    writeRegX(core#CMD_SET_PAGEADDR, 2, (page_end << 8) | page_start)
+    writeRegX(core#CMD_SET_PAGEADDR, 2, (pgend << 8) | pgstart)
 
-PUB SetPrecharge(phase1_period, phase2_period)
-' $D9 bits 7..0
-' Set Pre-charge period: 1..15 DCLK, 0 is invalid
+PUB PrechargePeriod(phs1_clks, phs2_clks)
+' Set Pre-charge period: 1..15 DCLK
 ' POR: 2 (both)
-    case phase1_period
+    case phs1_clks
         1..15:
         OTHER:
-            phase1_period := 2
+            phs1_clks := 2
 
-    case phase2_period
+    case phs2_clks
         1..15:
         OTHER:
-            phase2_period := 2
+            phs2_clks := 2
 
-    writeRegX(core#CMD_SETPRECHARGE, 1, (phase2_period << 4) | phase1_period)
+    writeRegX(core#CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
 
-PUB SetOSCFreq(freq)
+PUB OSCFreq(freq)
 'D5, 80 XXX NEEDS VALIDATION
     writeRegX(core#CMD_SETOSCFREQ, 1, freq)
 
-PUB SetVCOMHDeselectLevel(level)
-' $DB bits 6..4
+PUB VCOMHDeselectLevel(level)
 ' Set Vcomh deselect level 0.65, 0.77, 0.83 * Vcc
 ' POR: 0.77 * Vcc
     case level
@@ -442,7 +422,7 @@ PUB SetVCOMHDeselectLevel(level)
             level := %000 << 4
         0.83:
             level := %011 << 4
-        $40:
+        $40:    'XXX CHECK THIS
             level := %100 << 4
         OTHER:
             level := %010 << 4 '0.77 * Vcc

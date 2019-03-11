@@ -27,7 +27,7 @@ CON
 
 OBJ
 
-    cfg : "core.con.client.flip"
+    cfg : "core.con.boardcfg.flip"
     ser : "com.serial.terminal"
     time: "time"
     oled: "display.oled.128x32.i2c"
@@ -140,10 +140,10 @@ PUB Demo_Contrast(reps, delay_ms) | contrast_level
 '' Fades out and in display contrast
     repeat reps
         repeat contrast_level from 255 to 1
-            oled.SetContrast (contrast_level)
+            oled.Contrast (contrast_level)
             time.MSleep (delay_ms)
         repeat contrast_level from 0 to 254
-            oled.SetContrast (contrast_level)
+            oled.Contrast (contrast_level)
             time.MSleep (delay_ms)
 
 PUB Demo_LineRND (reps)' | x, y
@@ -317,8 +317,7 @@ PUB Setup
     if oled.Startx (WIDTH, HEIGHT, SSD1306_SCL, SSD1306_SDA, SSD1306_HZ, 0)
         oled.Defaults
         ser.Str (string("SSD1306 object started. Draw buffer @"))
-        ser.Hex (oled.SetDrawBuffer (@_framebuff), 8)
-
+        ser.Hex (oled.DrawBuffer (@_framebuff), 8)
     else
         ser.Str (string("SSD1306 object failed to start - halting"))
         oled.Stop
