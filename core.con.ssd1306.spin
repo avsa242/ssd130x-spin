@@ -4,6 +4,8 @@
     Author: Jesse Burt
     Description: SSD1306 OLED/PLED Display driver registers/command set
     Copyright (c) 2018
+    Created: Apr 26, 2018
+    Updated: Mar 12, 2019
     See end of file for terms of use.
     --------------------------------------------
 }

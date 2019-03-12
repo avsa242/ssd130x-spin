@@ -1,12 +1,11 @@
 {
     --------------------------------------------
-    Filename: display.oled.128x32.i2c.spin
+    Filename: display.oled.ssd1306.i2c.spin
     Description: Driver for Solomon Systech SSD1306 I2C OLED display drivers
-      Tested to 1.0MHz
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Oct 29, 2018
+    Updated: Mar 12, 2019
     See end of file for terms of use.
     --------------------------------------------
 }

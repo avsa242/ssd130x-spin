@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Oct 29, 2018
+    Updated: Mar 12, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -30,7 +30,7 @@ OBJ
     cfg : "core.con.boardcfg.flip"
     ser : "com.serial.terminal"
     time: "time"
-    oled: "display.oled.128x32.i2c"
+    oled: "display.oled.ssd1306.i2c"
     int : "string.integer"
 
 VAR
