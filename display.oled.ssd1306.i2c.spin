@@ -94,6 +94,82 @@ PUB Defaults
             PageRange (0, 3)
     DisplayOn
 
+PUB AddrMode(mode)
+' Set Memory Addressing Mode
+'   0: Horizontal addressing mode
+'   1: Vertical
+'   2: Page (POR)
+    case mode
+        0, 1:
+        OTHER:
+            return
+
+    writeRegX(core#CMD_MEM_ADDRMODE, 1, mode)
+
+PUB BufferSize
+' Get size of buffer
+    return _buffsz
+
+PUB Char (col, row, ch) | i 'XXX Move to generic bitmap gfx lib, make operate like terminal methods
+' Write a character to the display @ row and column
+    col &= (_disp_width / 8) - 1    'Clamp position based on
+    row &= (_disp_height / 8) - 1   ' screen's dimensions
+    repeat i from 0 to 7
+        byte[_draw_buffer][row << 7 + col << 3 + i] := byte[font.baseaddr + 8 * ch + i]
+
+PUB ChargePumpReg(enabled)
+' Enable Charge Pump Regulator when display power enabled
+    case ||enabled
+        0, 1: enabled := ||enabled
+        OTHER:
+            return
+    writeRegX(core#CMD_CHARGEPUMP, 1, lookupz(enabled: $10, $14))
+
+PUB Clear
+' Clear the display buffer
+    longfill(_draw_buffer, $00, _buffsz/4)
+
+PUB ColumnStartEnd(column_start, column_end)
+' Set display start and end columns
+    case column_start
+        0..127:
+        OTHER:
+            column_start := 0
+
+    case column_end
+        0..127:
+        OTHER:
+            column_end := 127
+
+    writeRegX(core#CMD_SET_COLADDR, 2, (column_end << 8) | column_start)
+
+PUB COMPinCfg(pin_config, remap) | config
+' Set COM Pins Hardware Configuration and Left/Right Remap
+'  pin_config: 0: Sequential                      1: Alternative (POR)
+'       remap: 0: Disable Left/Right remap (POR)  1: Enable remap
+' POR: $12
+    config := %0000_0010
+    case pin_config
+        0:
+        OTHER:
+            config := config | (1 << 4)
+
+    case remap
+        1:
+            config := config | (1 << 5)
+        OTHER:
+
+    writeRegX(core#CMD_SETCOM_CFG, 1, config)
+
+PUB Contrast(level)
+' Set Contrast Level 0..255 (POR = 127)
+    case level
+        0..255:
+        OTHER:
+            level := 127
+
+    writeRegX(core#CMD_CONTRAST, 1, level)
+
 PUB DisplayOn
 ' Power on display
     writeRegX(core#CMD_DISP_ON, 0, 0)
@@ -102,17 +178,32 @@ PUB DisplayOff
 ' Power off display
     writeRegX(core#CMD_DISP_OFF, 0, 0)
 
-PUB BufferSize
-' Get size of buffer
-    return _buffsz
+PUB DisplayOffset(offset)
+' Set Display Offset/vertical shift from 0..63
+' POR: 0
+    case offset
+        0..63:
+        OTHER:
+            offset := 0
 
-PUB ClearDrawBuffer
-' Clear the display buffer
-    longfill(_draw_buffer, $00, _buffsz/4)
+    writeRegX(core#CMD_SETDISPOFFS, 1, offset)
+
+PUB DisplayStartLine(start_line)
+' Set Display Start Line from 0..63
+    case start_line
+        0..63:
+        OTHER:
+            return
+
+    writeRegX($40, 0, start_line)
 
 PUB DrawBitmap(addr_bitmap)
 ' Blits bitmap to display buffer
     bytemove(_draw_buffer, addr_bitmap, _buffsz)
+
+PUB DrawBuffer(address)
+' Set address of display buffer
+    return _draw_buffer := address
 
 PUB DrawCircle(x0, y0, radius, color) | x, y, err, cdx, cdy
 
@@ -141,29 +232,6 @@ PUB DrawCircle(x0, y0, radius, color) | x, y, err, cdx, cdy
             x--
             cdx += 2
             err += cdx - (radius << 1)
-
-PUB DrawPattern'XXX IMPLEMENT ME
-
-PUB DrawPixel (x, y, c)
-
-    case x
-        0.._disp_width-1:
-        OTHER:
-            return
-    case y
-        0.._disp_height-1:
-        OTHER:
-            return
-
-    case c
-        1:
-            byte[_draw_buffer][x + (y>>3)*_disp_width] |= (1 << (y&7))
-        0:
-            byte[_draw_buffer][x + (y>>3)*_disp_width] &= (1 << (y&7))
-        -1:
-            byte[_draw_buffer][x + (y>>3)*_disp_width] ^= (1 << (y&7))
-        OTHER:
-            return
 
 PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
@@ -225,32 +293,28 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
         OTHER:
             return
 
-PUB Char (col, row, ch) | i 'XXX Move to generic bitmap gfx lib, make operate like terminal methods
-' Write a character to the display @ row and column
-    col &= (_disp_width / 8) - 1    'Clamp position based on
-    row &= (_disp_height / 8) - 1   ' screen's dimensions
-    repeat i from 0 to 7
-        byte[_draw_buffer][row << 7 + col << 3 + i] := byte[font.baseaddr + 8 * ch + i]
+PUB DrawPattern'XXX IMPLEMENT ME
 
-PUB Str (col, row, string_addr) | i
-' Write string at string_addr to the display @ row and column.
-'   NOTE: Wraps to the left at end of line and to the top-left at end of display
-    repeat i from 0 to strsize(string_addr)-1
-        char(col, row, byte[string_addr][i])
-        col++
-        if col > (_disp_width / 8) - 1
-            col := 0
-            row++
-            if row > (_disp_height / 8) - 1
-                row := 0
+PUB DrawPixel (x, y, c)
 
-PUB ChargePumpReg(enabled)
-' Enable Charge Pump Regulator when display power enabled
-    case ||enabled
-        0, 1: enabled := ||enabled
+    case x
+        0.._disp_width-1:
         OTHER:
             return
-    writeRegX(core#CMD_CHARGEPUMP, 1, lookupz(enabled: $10, $14))
+    case y
+        0.._disp_height-1:
+        OTHER:
+            return
+
+    case c
+        1:
+            byte[_draw_buffer][x + (y>>3)*_disp_width] |= (1 << (y&7))
+        0:
+            byte[_draw_buffer][x + (y>>3)*_disp_width] &= (1 << (y&7))
+        -1:
+            byte[_draw_buffer][x + (y>>3)*_disp_width] ^= (1 << (y&7))
+        OTHER:
+            return
 
 PUB EntireDisplayOn(enabled)
 ' TRUE    - Turns on all pixels (doesn't affect GDDRAM contents)
@@ -295,82 +359,6 @@ PUB MirrorV(enabled)
 
     writeRegX(core#CMD_COMDIR_NORM, 0, enabled)
 
-PUB AddrMode(mode)
-' Set Memory Addressing Mode
-'   0: Horizontal addressing mode
-'   1: Vertical
-'   2: Page (POR)
-    case mode
-        0, 1:
-        OTHER:
-            return
-
-    writeRegX(core#CMD_MEM_ADDRMODE, 1, mode)
-
-PUB ColumnStartEnd(column_start, column_end)
-' Set display start and end columns
-    case column_start
-        0..127:
-        OTHER:
-            column_start := 0
-
-    case column_end
-        0..127:
-        OTHER:
-            column_end := 127
-
-    writeRegX(core#CMD_SET_COLADDR, 2, (column_end << 8) | column_start)
-
-PUB DisplayOffset(offset)
-' Set Display Offset/vertical shift from 0..63
-' POR: 0
-    case offset
-        0..63:
-        OTHER:
-            offset := 0
-
-    writeRegX(core#CMD_SETDISPOFFS, 1, offset)
-
-PUB DisplayStartLine(start_line)
-' Set Display Start Line from 0..63
-    case start_line
-        0..63:
-        OTHER:
-            return
-
-    writeRegX($40, 0, start_line)
-
-PUB DrawBuffer(address)
-' Set address of display buffer
-    return _draw_buffer := address
-
-PUB COMPinCfg(pin_config, remap) | config
-' Set COM Pins Hardware Configuration and Left/Right Remap
-'  pin_config: 0: Sequential                      1: Alternative (POR)
-'       remap: 0: Disable Left/Right remap (POR)  1: Enable remap
-' POR: $12
-    config := %0000_0010
-    case pin_config
-        0:
-        OTHER:
-            config := config | (1 << 4)
-
-    case remap
-        1:
-            config := config | (1 << 5)
-        OTHER:
-
-    writeRegX(core#CMD_SETCOM_CFG, 1, config)
-
-PUB Contrast(level)
-' Set Contrast Level 0..255 (POR = 127)
-    case level
-        0..255:
-        OTHER:
-            level := 127
-
-    writeRegX(core#CMD_CONTRAST, 1, level)
-
 PUB MuxRatio(mux_ratio)
 ' Valid values: 16..64
     case mux_ratio
@@ -379,6 +367,19 @@ PUB MuxRatio(mux_ratio)
             return
 
     writeRegX(core#CMD_SETMUXRATIO, 1, mux_ratio-1)
+
+PUB OSCFreq(kHz)
+' Set Oscillator frequency, in kHz
+'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
+'   Any other value is ignored
+'   NOTE: Range is interpolated, based solely in the range specified in the datasheet, divided into 16 steps
+    case kHz
+        core#FOSC_MIN..core#FOSC_MAX:
+            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
+        OTHER:
+            return
+
+    writeRegX(core#CMD_SETOSCFREQ, 1, kHz)
 
 PUB PageRange(pgstart, pgend)
 
@@ -409,18 +410,21 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 
     writeRegX(core#CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
 
-PUB OSCFreq(kHz)
-' Set Oscillator frequency, in kHz
-'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
-'   Any other value is ignored
-'   NOTE: Range is interpolated, based solely in the range specified in the datasheet, divided into 16 steps
-    case kHz
-        core#FOSC_MIN..core#FOSC_MAX:
-            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
-        OTHER:
-            return
+PUB StopScroll
 
-    writeRegX(core#CMD_SETOSCFREQ, 1, kHz)
+    writeRegX(core#CMD_STOPSCROLL, 0, 0)
+
+PUB Str (col, row, string_addr) | i
+' Write string at string_addr to the display @ row and column.
+'   NOTE: Wraps to the left at end of line and to the top-left at end of display
+    repeat i from 0 to strsize(string_addr)-1
+        char(col, row, byte[string_addr][i])
+        col++
+        if col > (_disp_width / 8) - 1
+            col := 0
+            row++
+            if row > (_disp_height / 8) - 1
+                row := 0
 
 PUB VCOMHDeselectLevel(level)
 ' Set Vcomh deselect level 0.65, 0.77, 0.83 * Vcc
@@ -437,10 +441,6 @@ PUB VCOMHDeselectLevel(level)
             level := %010 << 4
 
     writeRegX(core#CMD_SETVCOMDESEL, 1, level)
-
-PUB StopScroll
-
-    writeRegX(core#CMD_STOPSCROLL, 0, 0)
 
 PUB writeBuffer
 
