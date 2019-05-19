@@ -24,7 +24,7 @@ OBJ
     core    : "core.con.ssd1306"
     time    : "time"
     i2c     : "com.i2c"
-    font    : "font.5x8.thomaspsullivan.spin"
+    font    : "font.5x8.spin"
 
 VAR
 
@@ -63,7 +63,7 @@ PUB Stop
 PUB Defaults
 
     DisplayOff
-    OSCFreq ($80)
+    OSCFreq (372)
     MuxRatio(_disp_height-1)
     DisplayOffset(0)
     DisplayStartLine(0)
@@ -225,7 +225,7 @@ PUB DrawLine(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
         OTHER:
             return
 
-PUB Char (col, row, ch) | i
+PUB Char (col, row, ch) | i 'XXX Move to generic bitmap gfx lib, make operate like terminal methods
 ' Write a character to the display @ row and column
     col &= (_disp_width / 8) - 1    'Clamp position based on
     row &= (_disp_height / 8) - 1   ' screen's dimensions
@@ -409,9 +409,18 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 
     writeRegX(core#CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
 
-PUB OSCFreq(freq)
-'D5, 80 XXX NEEDS VALIDATION
-    writeRegX(core#CMD_SETOSCFREQ, 1, freq)
+PUB OSCFreq(kHz)
+' Set Oscillator frequency, in kHz
+'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
+'   Any other value is ignored
+'   NOTE: Range is interpolated, based solely in the range specified in the datasheet, divided into 16 steps
+    case kHz
+        core#FOSC_MIN..core#FOSC_MAX:
+            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
+        OTHER:
+            return
+
+    writeRegX(core#CMD_SETOSCFREQ, 1, kHz)
 
 PUB VCOMHDeselectLevel(level)
 ' Set Vcomh deselect level 0.65, 0.77, 0.83 * Vcc

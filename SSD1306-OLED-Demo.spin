@@ -20,7 +20,7 @@ CON
     SSD1306_HZ  = 1_000_000
 
     WIDTH       = 128
-    HEIGHT      = 64
+    HEIGHT      = 32
     BUFFSZ      = (WIDTH * HEIGHT) / 8
     XMAX        = WIDTH-1
     YMAX        = HEIGHT-1
