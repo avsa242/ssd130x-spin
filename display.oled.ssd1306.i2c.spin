@@ -424,16 +424,17 @@ PUB OSCFreq(kHz)
 
 PUB VCOMHDeselectLevel(level)
 ' Set Vcomh deselect level 0.65, 0.77, 0.83 * Vcc
-' POR: 0.77 * Vcc
+'   Valid values: 0.65, 0.77, 0.83
+'   Any other value sets the POR value, 0.77
     case level
         0.67:
             level := %000 << 4
+        0.77:
+            level := %010 << 4
         0.83:
             level := %011 << 4
-        $40:    'XXX CHECK THIS
-            level := %100 << 4
         OTHER:
-            level := %010 << 4 '0.77 * Vcc
+            level := %010 << 4
 
     writeRegX(core#CMD_SETVCOMDESEL, 1, level)
 
