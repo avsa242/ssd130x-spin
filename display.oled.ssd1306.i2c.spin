@@ -324,8 +324,6 @@ PUB Update | tmp
     i2c.write (SLAVE_WR | _sa0)
     i2c.write (core#CTRLBYTE_DATA)
     i2c.Wr_Block(_draw_buffer, _buff_sz)
-'    repeat tmp from 0 to _buff_sz-1
-'        i2c.write (byte[_draw_buffer][tmp])
     i2c.stop
 
 PUB WriteBuffer(buff_addr, buff_sz) | tmp
@@ -337,8 +335,6 @@ PUB WriteBuffer(buff_addr, buff_sz) | tmp
     i2c.write (SLAVE_WR | _sa0)
     i2c.write (core#CTRLBYTE_DATA)
     i2c.Wr_Block(buff_addr, _buff_sz)
-'    repeat tmp from 0 to buff_sz-1
-'        i2c.write (byte[buff_addr][tmp])
     i2c.stop
 
 PRI writeReg(reg, nr_bytes, val) | cmd_packet[2], tmp, ackbit
