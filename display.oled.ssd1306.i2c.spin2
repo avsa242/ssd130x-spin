@@ -168,7 +168,10 @@ PUB Contrast(level)
     writeReg(core#CMD_CONTRAST, 1, level)
 
 PUB DisplayLines(lines)
-' Valid values: 16..64
+' Set total number of display lines
+'   Valid values: 16..64
+'   Typical values: 32, 64
+'   Any other value is ignored
     case lines
         16..64:
             lines -= 1
