@@ -24,7 +24,6 @@ OBJ
     core    : "core.con.ssd1306"
     time    : "time"
     i2c     : "com.i2c"
-    font    : "font.5x8.spin"
 
 VAR
 
@@ -46,7 +45,7 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
 '       I2C_HZ: ~1200..1_000_000
 '       SLAVE_LSB: 0, 1
     _sa0 := ||(SLAVE_LSB == 1) << 1
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
+    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if I2C_HZ =< core#I2C_MAX_FREQ
             i2c.SetupX (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
             time.MSleep (20)
@@ -80,7 +79,7 @@ PUB Defaults
             COMPinCfg(1, 0)
         OTHER:
             COMPinCfg(0, 0)
-    Contrast($7F)
+    Contrast(127)
     PrechargePeriod (1, 15)
     VCOMHDeselectLevel ($40)
     EntireDisplayOn(FALSE)

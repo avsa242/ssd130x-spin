@@ -23,7 +23,6 @@ OBJ
     core    : "core.con.ssd1306"
     time    : "time"
     i2c     : "com.i2c"
-    font    : "font.5x8.spin"
 
 VAR
 
@@ -79,7 +78,7 @@ PUB Defaults
             COMPinCfg(1, 0)
         OTHER:
             COMPinCfg(0, 0)
-    Contrast($7F)
+    Contrast(127)
     PrechargePeriod (1, 15)
     VCOMHDeselectLevel ($40)
     EntireDisplayOn(FALSE)
@@ -97,12 +96,10 @@ PUB Defaults
 PUB Address(addr)
 ' Set framebuffer address
     case addr
-        $0004..$7FFFF:
+        $0004..$7FFFF-_buff_sz:
             _draw_buffer := addr
         OTHER:
             return _draw_buffer
-
-    _draw_buffer := addr
 
 PUB AddrMode(mode)
 ' Set Memory Addressing Mode
