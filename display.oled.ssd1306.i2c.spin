@@ -65,7 +65,7 @@ PUB Defaults
 
     DisplayOff
     OSCFreq (372)
-    MuxRatio(_disp_height-1)
+    DisplayLines(_disp_height-1)
     DisplayOffset(0)
     DisplayStartLine(0)
     ChargePumpReg(TRUE)
@@ -173,6 +173,16 @@ PUB Contrast(level)
 
     writeReg(core#CMD_CONTRAST, 1, level)
 
+PUB DisplayLines(lines)
+' Valid values: 16..64
+    case lines
+        16..64:
+            lines -= 1
+        OTHER:
+            return
+
+    writeReg(core#CMD_SETMUXRATIO, 1, lines)
+
 PUB DisplayOn
 ' Power on display
     writeReg(core#CMD_DISP_ON, 0, 0)
@@ -246,15 +256,6 @@ PUB MirrorV(enabled)
             return
 
     writeReg(core#CMD_COMDIR_NORM, 0, enabled)
-
-PUB MuxRatio(mux_ratio)
-' Valid values: 16..64
-    case mux_ratio
-        16..64:
-        OTHER:
-            return
-
-    writeReg(core#CMD_SETMUXRATIO, 1, mux_ratio-1)
 
 PUB OSCFreq(kHz)
 ' Set Oscillator frequency, in kHz
