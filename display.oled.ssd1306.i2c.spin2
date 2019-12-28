@@ -5,11 +5,12 @@
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Dec 27, 2019
+    Updated: Dec 28, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
 #include "lib.gfx.bitmap.spin2"
+
 CON
 
     SLAVE_WR        = core#SLAVE_ADDR

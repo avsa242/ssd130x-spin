@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: display.oled.ssd1306.i2c.spin2
-    Description: Driver for Solomon Systech SSD1306 I2C OLED display drivers (P2 version)
+    Filename: display.oled.ssd1306.i2c.spin
+    Description: Driver for Solomon Systech SSD1306 I2C OLED display drivers
     Author: Jesse Burt
     Copyright (c) 2018
     Created: Apr 26, 2018
-    Updated: Dec 27, 2019
+    Updated: Dec 28, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -131,6 +131,7 @@ PUB ChargePumpReg(enabled)
             enabled := lookupz(||enabled: $10, $14)
         OTHER:
             return
+
     writeReg(core#CMD_CHARGEPUMP, 1, enabled)
 
 PUB ClearAccel
