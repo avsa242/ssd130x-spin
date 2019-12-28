@@ -152,6 +152,25 @@ PUB ColumnStartEnd(column_start, column_end)
 
     writeReg(core#CMD_SET_COLADDR, 2, (column_end << 8) | column_start)
 
+PUB COMLogicHighLevel(level)
+' Set COMmon pins high logic level, relative to Vcc
+'   Valid values:
+'       0_65: 0.65 * Vcc
+'      *0_77: 0.77 * Vcc
+'       0_83: 0.83 * Vcc
+'   Any other value sets the default value
+    case level
+        0_65:
+            level := %000 << 4
+        0_77:
+            level := %010 << 4
+        0_83:
+            level := %011 << 4
+        OTHER:
+            level := %010 << 4
+
+    writeReg(core#CMD_SETVCOMDESEL, 1, level)
+
 PUB COMPinCfg(pin_config, remap) | config
 ' Set COM Pins Hardware Configuration and Left/Right Remap
 '   Valid values:
@@ -318,22 +337,6 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
             phs2_clks := 2
 
     writeReg(core#CMD_SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
-
-PUB VCOMHDeselectLevel(level)
-' Set Vcomh logic level
-'   Valid values: 0_65, 0_77, 0_83 (default 0_77)
-'   Any other value sets the default value
-    case level
-        0_67:
-            level := %000 << 4
-        0_77:
-            level := %010 << 4
-        0_83:
-            level := %011 << 4
-        OTHER:
-            level := %010 << 4
-
-    writeReg(core#CMD_SETVCOMDESEL, 1, level)
 
 PUB Update | tmp
 ' Write display buffer to display
