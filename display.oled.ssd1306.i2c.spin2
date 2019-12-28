@@ -93,7 +93,7 @@ PUB Defaults
             PageRange (0, 3)
     DisplayOn
 
-PUB Address(addr)
+PUB Address(addr=-2)
 ' Set framebuffer address
     case addr
         $0004..$7FFFF-_buff_sz:
@@ -351,7 +351,7 @@ PRI writeReg(reg, nr_bytes, val) | cmd_packet[2], tmp, ackbit
             cmd_packet.byte[3] := val & $FF
             cmd_packet.byte[4] := (val >> 8) & $FF
         OTHER:
-            return $DEADC0DE
+            return FALSE
 
     i2c.start
     repeat tmp from 0 to 2 + nr_bytes

@@ -355,7 +355,7 @@ PRI writeReg(reg, nr_bytes, val) | cmd_packet[2], tmp, ackbit
             cmd_packet.byte[3] := val & $FF
             cmd_packet.byte[4] := (val >> 8) & $FF
         OTHER:
-            return $DEADC0DE
+            return FALSE
 
     i2c.start
     repeat tmp from 0 to 2 + nr_bytes
