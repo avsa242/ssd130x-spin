@@ -16,6 +16,7 @@ This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for Solomon S
 
 * P1/SPIN1: 1 extra core/cog for the PASM I2C driver
 * P2/SPIN2: N/A
+* Presence of lib.gfx.bitmap library
 
 ## Compiler compatibility
 

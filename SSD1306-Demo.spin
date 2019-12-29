@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: SSD1306-OLED-Demo.spin
-    Description: Demo of the ssd1306 i2c driver
+    Filename: SSD1306-Demo.spin
+    Description: Demo of the SSD1306 driver
     Author: Jesse Burt
-    Copyright (c) 2018
+    Copyright (c) 2019
     Created: Apr 26, 2018
-    Updated: Mar 12, 2019
+    Updated: Dec 28, 2019
     See end of file for terms of use.
     --------------------------------------------
 }

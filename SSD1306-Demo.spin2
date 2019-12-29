@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: SSD1306-Demo.spin2
-    Description: Demo of the ssd1306 i2c driver
+    Description: Demo of the SSD1306 driver (P2 version)
     Author: Jesse Burt
-    Copyright (c) 2018
+    Copyright (c) 2019
     Created: Jun 15, 2019
-    Updated: Nov 2, 2019
+    Updated: Dec 28, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
