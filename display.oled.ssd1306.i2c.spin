@@ -82,7 +82,7 @@ PUB Defaults
             COMPinCfg(0, 0)
     Contrast(127)
     PrechargePeriod (1, 15)
-    VCOMHDeselectLevel (0_77)
+    COMLogicHighLevel (0_77)
     EntireDisplayOn(FALSE)
     InvertDisplay(FALSE)
     ColumnStartEnd (0, _disp_width-1)
