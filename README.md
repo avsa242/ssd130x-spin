@@ -1,20 +1,36 @@
 # ssd1306-spin
----
+--------------
 
-This is a P8X32A/Propeller driver object for Solomon System's SSD1306 line of OLED display controllers.
+This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for Solomon Systech's SSD1306 line of OLED display controllers.
 
 ## Salient Features
 
-* I2C connection (tested up to 1MHz)
-* GDDRAM (Display RAM) writes are buffered
-* Horizontal and Vertical mirroring
-* Basic graphics primitives (pixel, line, circle (_circle_, not ellipse))
-* Supports 128x32 displays
+* I2C connection at up to approx 1MHz (P1), _TBD_ kHz (P2)
+* Buffered display writes
+* Supports Horizontal and Vertical mirroring
+* Supports 128x32 and 128x64 displays
 * Supports display modules without discrete RESET pin
+* Integration with the generic bitmap graphics library
+
+## Requirements
+
+* P1/SPIN1: 1 extra core/cog for the PASM I2C driver
+* P2/SPIN2: N/A
+* Presence of lib.gfx.bitmap library
+
+## Compiler compatibility
+
+* P1/SPIN1: OpenSpin (tested with 1.00.81)
+* P2/SPIN2: FastSpin (tested with 4.0.4)
+
+## Limitations
+
+* Very early in development - may malfunction or outright fail to build
+* Doesn't support display modules that have the RESET pin broken out
+* Doesn't support parallel interface-connected displays (currently unplanned)
 
 ## TODO
 
-* Implement text rendering
-* Handle other display sizes
-* Implement scrolling
-* Handle modules with RESET pin
+- [ ] Support hw-accelerated scrolling
+- [ ] Support SPI-connected displays
+- [ ] Support display modules that have a discrete RESET pin

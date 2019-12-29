@@ -4,6 +4,8 @@
     Author: Jesse Burt
     Description: SSD1306 OLED/PLED Display driver registers/command set
     Copyright (c) 2018
+    Created: Apr 26, 2018
+    Updated: Mar 12, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -15,6 +17,9 @@ CON
 
     CTRLBYTE_CMD    = $00
     CTRLBYTE_DATA   = $40
+
+    FOSC_MIN        = 333
+    FOSC_MAX        = 407
 
 'FUNDAMENTAL COMMAND SET
     CMD_CONTRAST    = $81 'Double byte command - send 8-bit contrast value after this command
@@ -49,6 +54,11 @@ CON
 
     CMD_SETDISPOFFS = $D3
     CMD_SETOSCFREQ  = $D5
+        FLD_OSCFREQ = 4
+        FLD_CLKDIV  = 0
+        BITS_OSCFREQ= %1111
+        BITS_CLKDIV = %1111
+
     CMD_CHARGEPUMP  = $8D
 
 'TIMING & DRIVING SCHEME
