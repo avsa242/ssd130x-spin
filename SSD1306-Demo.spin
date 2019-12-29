@@ -97,7 +97,7 @@ PUB Main
     Demo_Wander (1000)
     oled.ClearAll
 
-    Demo_Text (300)
+    Demo_Text (20)
 
     Demo_Contrast(2, 1)
     oled.ClearAll

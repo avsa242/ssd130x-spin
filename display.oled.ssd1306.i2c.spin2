@@ -29,7 +29,7 @@ VAR
 
     long _draw_buffer
     word _buff_sz
-    byte _disp_width, _disp_height
+    byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
 
 PUB Null
@@ -52,6 +52,8 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
             if i2c.Present (SLAVE_WR | _sa0)                                         'Response from device?
                 _disp_width := width
                 _disp_height := height
+                _disp_xmax := _disp_width-1
+                _disp_ymax := _disp_height-1
                 _buff_sz := (_disp_width * _disp_height) / 8
                 Address(dispbuffer_address)
                 return TRUE
