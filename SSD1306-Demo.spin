@@ -176,6 +176,8 @@ PUB Demo_Greet
     ser.Position(0, _ser_row)
     ser.Str(string("Demo_Greet"))
 
+    oled.FGColor(1)
+    oled.BGColor(0)
     oled.Position (0, 0)
     oled.Str (string("SSD1306 on the"))
 
@@ -274,11 +276,13 @@ PUB Demo_Sinewave(reps) | x, y, modifier, offset, div
         oled.Clear
 
 PUB Demo_Text(reps) | col, row, maxcol, maxrow, ch, st
-' Sequentially draws the whole font table to the screen,then random characters
+' Sequentially draws the whole font table to the screen, then random characters
     _ser_row++
     ser.Position(0, _ser_row)
     ser.Str(string("Demo_Text"))
 
+    oled.FGColor(1)
+    oled.BGColor(0)
     maxcol := (WIDTH/oled.FontWidth)-1
     maxrow := (HEIGHT/oled.FontHeight)-1
     ch := $00
