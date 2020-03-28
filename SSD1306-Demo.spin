@@ -3,9 +3,9 @@
     Filename: SSD1306-Demo.spin
     Description: Demo of the SSD1306 driver
     Author: Jesse Burt
-    Copyright (c) 2019
+    Copyright (c) 2020
     Created: Apr 26, 2018
-    Updated: Dec 28, 2019
+    Updated: Mar 28, 2020
     See end of file for terms of use.
     --------------------------------------------
 }

@@ -3,9 +3,9 @@
     Filename: display.oled.ssd1306.i2c.spin
     Description: Driver for Solomon Systech SSD1306 I2C OLED display drivers
     Author: Jesse Burt
-    Copyright (c) 2018
+    Copyright (c) 2020
     Created: Apr 26, 2018
-    Updated: Dec 28, 2019
+    Updated: Mar 28, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -71,7 +71,7 @@ PUB Stop
     i2c.Terminate
 
 PUB Defaults
-
+' Apply power-on-reset default settings
     Powered(FALSE)
     ClockFreq (372)
     DisplayLines(_disp_height-1)
@@ -314,7 +314,7 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 
 PUB Update | tmp
 ' Write display buffer to display
-    DisplayBounds(0, 0, _disp_width-1, _disp_height-1)
+    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
     i2c.start
     i2c.write (SLAVE_WR | _sa0)
@@ -326,7 +326,7 @@ PUB WriteBuffer(buff_addr, buff_sz) | tmp
 ' Write alternate buffer to display
 '   buff_sz: bytes to write
 '   buff_addr: address of buffer to write to display
-    DisplayBounds(0, 0, _disp_width-1, _disp_height-1)
+    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
 
     i2c.start
     i2c.write (SLAVE_WR | _sa0)
