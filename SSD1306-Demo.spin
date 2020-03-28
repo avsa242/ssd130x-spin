@@ -510,7 +510,7 @@ PUB Setup
         ser.Str (string("SSD1306 driver started. Draw buffer @ $"))
         ser.Hex (oled.Address (-2), 8)
         oled.Defaults
-        oled.OscFreq (407)
+        oled.ClockFreq (407)
         oled.FontSize (6, 8)
         oled.FontAddress (fnt5x8.BaseAddr)
     else

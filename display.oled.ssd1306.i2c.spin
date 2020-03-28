@@ -73,7 +73,7 @@ PUB Stop
 PUB Defaults
 
     Powered(FALSE)
-    OSCFreq (372)
+    ClockFreq (372)
     DisplayLines(_disp_height-1)
     DisplayOffset(0)
     DisplayStartLine(0)
@@ -131,6 +131,19 @@ PUB ChargePumpReg(enabled)
 
 PUB ClearAccel
 ' Dummy method
+
+PUB ClockFreq(kHz)
+' Set display internal oscillator frequency, in kHz
+'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
+'   Any other value is ignored
+'   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
+    case kHz
+        core#FOSC_MIN..core#FOSC_MAX:
+            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
+        OTHER:
+            return
+
+    writeReg(core#CMD_SETOSCFREQ, 1, kHz)
 
 PUB COMLogicHighLevel(level)
 ' Set COMmon pins high logic level, relative to Vcc
@@ -273,19 +286,6 @@ PUB MirrorV(enabled)
             return
 
     writeReg(core#CMD_COMDIR_NORM, 0, enabled)
-
-PUB OSCFreq(kHz)
-' Set Oscillator frequency, in kHz
-'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
-'   Any other value is ignored
-'   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
-    case kHz
-        core#FOSC_MIN..core#FOSC_MAX:
-            kHz := lookdownz(kHz: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#FLD_OSCFREQ
-        OTHER:
-            return
-
-    writeReg(core#CMD_SETOSCFREQ, 1, kHz)
 
 PUB Powered(enabled) | tmp
 ' Enable display power

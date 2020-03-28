@@ -403,7 +403,7 @@ PUB Setup
     if oled.Start (WIDTH, HEIGHT, I2C_SCL, I2C_SDA, I2C_HZ, @_framebuff, 0)
         ser.Printf("SSD1306 driver started. Draw buffer @ $%x\n", oled.Address)
         oled.Defaults
-        oled.OSCFreq (407)
+        oled.ClockFreq (407)
         oled.FontSize (6, 8)
         oled.FontAddress (fnt5x8.BaseAddr)
     else
