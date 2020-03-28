@@ -522,7 +522,7 @@ PUB Setup
 
 PUB Stop
 
-    oled.DisplayOff
+    oled.Powered(FALSE)
     oled.Stop
     cogstop(_timer_cog)
     ser.Stop

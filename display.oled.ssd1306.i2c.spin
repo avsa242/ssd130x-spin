@@ -62,12 +62,12 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
 
 PUB Stop
 
-    DisplayOff
+    Powered(FALSE)
     i2c.Terminate
 
 PUB Defaults
 
-    DisplayOff
+    Powered(FALSE)
     OSCFreq (372)
     DisplayLines(_disp_height-1)
     DisplayOffset(0)
@@ -96,7 +96,7 @@ PUB Defaults
             PageRange (0, 7)
         OTHER:
             PageRange (0, 3)
-    DisplayOn
+    Powered(TRUE)
 
 PUB Address(addr)
 ' Set framebuffer address
@@ -213,14 +213,6 @@ PUB DisplayLines(lines)
 
     writeReg(core#CMD_SETMUXRATIO, 1, lines)
 
-PUB DisplayOn
-' Power on display
-    writeReg(core#CMD_DISP_ON, 0, 0)
-
-PUB DisplayOff
-' Power off display
-    writeReg(core#CMD_DISP_OFF, 0, 0)
-
 PUB DisplayOffset(offset)
 ' Set display offset/vertical shift
 '   Valid values: 0..63 (default: 0)
@@ -320,6 +312,15 @@ PUB PageRange(pgstart, pgend)
             pgend := 7
 
     writeReg(core#CMD_SET_PAGEADDR, 2, (pgend << 8) | pgstart)
+
+PUB Powered(enabled) | tmp
+' Enable display power
+    case ||enabled
+        0, 1:
+            enabled := ||enabled + core#CMD_DISP_OFF
+        OTHER:
+            return
+    writeReg(enabled, 0, 0)
 
 PUB PrechargePeriod(phs1_clks, phs2_clks)
 ' Set display refresh pre-charge period, in display clocks

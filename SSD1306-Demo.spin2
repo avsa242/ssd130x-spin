@@ -417,7 +417,7 @@ PUB Setup
 
 PUB Stop
 
-    oled.DisplayOff
+    oled.Powered(FALSE)
     oled.Stop
 
     if _fps_mon_cog
