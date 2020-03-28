@@ -28,7 +28,7 @@ OBJ
 
 VAR
 
-    long _draw_buffer
+    long _ptr_framebuffer
     word _buff_sz
     byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
@@ -101,9 +101,9 @@ PUB Address(addr=-2)
 ' Set framebuffer address
     case addr
         $0004..$7FFFF-_buff_sz:
-            _draw_buffer := addr
+            _ptr_framebuffer := addr
         OTHER:
-            return _draw_buffer
+            return _ptr_framebuffer
 
 PUB AddrMode(mode)
 ' Set Memory Addressing Mode
@@ -350,7 +350,7 @@ PUB Update | tmp
     i2c.write (SLAVE_WR | _sa0)
     i2c.write (core#CTRLBYTE_DATA)
     repeat tmp from 0 to _buff_sz-1
-        i2c.write (byte[_draw_buffer][tmp])
+        i2c.write (byte[_ptr_framebuffer][tmp])
     i2c.stop
 
 PUB WriteBuffer(buff_addr, buff_sz) | tmp
