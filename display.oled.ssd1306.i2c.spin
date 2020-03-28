@@ -135,21 +135,21 @@ PUB ChargePumpReg(enabled)
 PUB ClearAccel
 ' Dummy method
 
-PUB ColumnStartEnd(column_start, column_end)
+PUB ColumnStartEnd(col_start, col_end)
 ' Set display visible start and end columns
 '   Valid values: 0..127
 '   Any other value is ignored
-    case column_start
+    case col_start
         0..127:
         OTHER:
-            column_start := 0
+            col_start := 0
 
-    case column_end
+    case col_end
         0..127:
         OTHER:
-            column_end := 127
+            col_end := 127
 
-    writeReg(core#CMD_SET_COLADDR, 2, (column_end << 8) | column_start)
+    writeReg(core#CMD_SET_COLADDR, 2, (col_end << 8) | col_start)
 
 PUB COMLogicHighLevel(level)
 ' Set COMmon pins high logic level, relative to Vcc
