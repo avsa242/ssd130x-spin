@@ -119,11 +119,6 @@ PUB AddrMode(mode)
 
     writeReg(core#CMD_MEM_ADDRMODE, 1, mode)
 
-PUB BufferSize
-' Display buffer size
-'   Returns: Size of display buffer, in bytes
-    return _buff_sz
-
 PUB ChargePumpReg(enabled)
 ' Enable Charge Pump Regulator when display power enabled
 '   Valid values: TRUE (-1 or 1), FALSE (0)
