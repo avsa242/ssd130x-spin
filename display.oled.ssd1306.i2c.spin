@@ -88,14 +88,7 @@ PUB Defaults
     COMLogicHighLevel (0_77)
     EntireDisplayOn(FALSE)
     InvertDisplay(FALSE)
-    ColumnStartEnd (0, _disp_width-1)
-    case _disp_height
-        32:
-            PageRange (0, 3)
-        64:
-            PageRange (0, 7)
-        OTHER:
-            PageRange (0, 3)
+    DisplayBounds(0, 0, _disp_width-1, _disp_height-1)
     Powered(TRUE)
 
 PUB Address(addr)
@@ -134,22 +127,6 @@ PUB ChargePumpReg(enabled)
 
 PUB ClearAccel
 ' Dummy method
-
-PUB ColumnStartEnd(col_start, col_end)
-' Set display visible start and end columns
-'   Valid values: 0..127
-'   Any other value is ignored
-    case col_start
-        0..127:
-        OTHER:
-            col_start := 0
-
-    case col_end
-        0..127:
-        OTHER:
-            col_end := 127
-
-    writeReg(core#CMD_SET_COLADDR, 2, (col_end << 8) | col_start)
 
 PUB COMLogicHighLevel(level)
 ' Set COMmon pins high logic level, relative to Vcc
@@ -199,6 +176,16 @@ PUB Contrast(level)
             level := 127
 
     writeReg(core#CMD_CONTRAST, 1, level)
+
+PUB DisplayBounds(sx, sy, ex, ey)
+' Set displayable area
+    ifnot lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) or lookup(ey: 0..63)
+        return
+
+    sy >>= 3
+    ey >>= 3
+    writeReg(core#CMD_SET_COLADDR, 2, (ex << 8) | sx)
+    writeReg(core#CMD_SET_PAGEADDR, 2, (ey << 8) | sy)
 
 PUB DisplayLines(lines)
 ' Set total number of display lines
@@ -299,20 +286,6 @@ PUB OSCFreq(kHz)
 
     writeReg(core#CMD_SETOSCFREQ, 1, kHz)
 
-PUB PageRange(pgstart, pgend)
-
-    case pgstart
-        0..7:
-        OTHER:
-            pgstart := 0
-
-    case pgend
-        0..7:
-        OTHER:
-            pgend := 7
-
-    writeReg(core#CMD_SET_PAGEADDR, 2, (pgend << 8) | pgstart)
-
 PUB Powered(enabled) | tmp
 ' Enable display power
     case ||enabled
@@ -340,8 +313,8 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 
 PUB Update | tmp
 ' Write display buffer to display
-    ColumnStartEnd (0, _disp_width-1)
-    PageRange (0, 7)
+    DisplayBounds(0, 0, _disp_width-1, _disp_height-1)
+
 
     i2c.start
     i2c.write (SLAVE_WR | _sa0)
@@ -353,8 +326,7 @@ PUB WriteBuffer(buff_addr, buff_sz) | tmp
 ' Write alternate buffer to display
 '   buff_sz: bytes to write
 '   buff_addr: address of buffer to write to display
-    ColumnStartEnd (0, _disp_width-1)
-    PageRange (0, 7)
+    DisplayBounds(0, 0, _disp_width-1, _disp_height-1)
 
     i2c.start
     i2c.write (SLAVE_WR | _sa0)
