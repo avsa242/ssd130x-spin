@@ -92,7 +92,7 @@ PUB Defaults
     PrechargePeriod (1, 15)
     COMLogicHighLevel (0_77)
     DisplayVisibility(NORMAL)
-    DisplayBounds(0, 0, _disp_width-1, _disp_height-1)
+    DisplayBounds(0, 0, _disp_xmax, _disp_ymax)
     Powered(TRUE)
 
 PUB Address(addr)
@@ -315,7 +315,6 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 PUB Update | tmp
 ' Write display buffer to display
     DisplayBounds(0, 0, _disp_width-1, _disp_height-1)
-
 
     i2c.start
     i2c.write (SLAVE_WR | _sa0)
