@@ -74,7 +74,7 @@ PUB Defaults
 ' Apply power-on-reset default settings
     Powered(FALSE)
     ClockFreq (372)
-    DisplayLines(_disp_height-1)
+    DisplayLines(_disp_height)
     DisplayOffset(0)
     DisplayStartLine(0)
     ChargePumpReg(TRUE)
