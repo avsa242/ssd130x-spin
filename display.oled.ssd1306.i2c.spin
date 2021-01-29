@@ -44,14 +44,13 @@ PUB Null{}
 ' This is not a top-level object
 
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, ptr_dispbuff): status
-' Start the driver with custom settings
-' Valid values:
-'       width: 0..128
-'       height: 32, 64
-'       SCL_PIN: 0..63
-'       SDA_PIN: 0..63
-'       I2C_HZ: ~1200..1_000_000
-'       SLAVE_LSB: 0, 1
+' Start the driver with custom I/O settings
+'   SCL_PIN: 0..63
+'   SDA_PIN: 0..63
+'   I2C_HZ: ~1200..1_000_000
+'   SLAVE_LSB: 0, 1
+'   WIDTH: 96, 128
+'   HEIGHT: 32, 64
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
 }   I2C_HZ =< core#I2C_MAX_FREQ                 ' validate pins and bus freq
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
