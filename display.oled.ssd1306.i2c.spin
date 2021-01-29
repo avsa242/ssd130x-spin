@@ -43,7 +43,7 @@ VAR
 PUB Null{}
 ' This is not a top-level object
 
-PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB): okay
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, ptr_dispbuff): status
 ' Start the driver with custom settings
 ' Valid values:
 '       width: 0..128
@@ -52,27 +52,31 @@ PUB Start(width, height, SCL_PIN, SDA_PIN, I2C_HZ, dispbuffer_address, SLAVE_LSB
 '       SDA_PIN: 0..63
 '       I2C_HZ: ~1200..1_000_000
 '       SLAVE_LSB: 0, 1
-    _sa0 := ||(SLAVE_LSB == 1) << 1
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
-        if I2C_HZ =< core#I2C_MAX_FREQ
-            i2c.setupx(SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
-            time.msleep(20)
-            if i2c.present(SLAVE_WR | _sa0)                                         'Response from device?
+    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
+}   I2C_HZ =< core#I2C_MAX_FREQ                 ' validate pins and bus freq
+        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+            time.usleep(core#TPOR)              ' wait for device startup
+            _sa0 := ||(ADDR_BIT == 1) << 1      ' slave address bit option
+            if i2c.present(SLAVE_WR | _sa0)     ' test device bus presence
                 _disp_width := width
                 _disp_height := height
                 _disp_xmax := _disp_width-1
                 _disp_ymax := _disp_height-1
+                ' calc display memory usage from dimensions and 1bpp depth
                 _buff_sz := (_disp_width * _disp_height) / 8
                 bytesperln := _disp_width * BYTESPERPX
 
-                address(dispbuffer_address)
-                return TRUE
-    return FALSE                                                'If we got here, something went wrong
+                address(ptr_dispbuff)           ' set display buffer address
+                return
+    ' if this point is reached, something above failed
+    ' Re-check I/O pin assignments, bus speed, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
 
 PUB Stop{}
 
     powered(FALSE)
-    i2c.terminate
+    i2c.deinit{}
 
 PUB Defaults{}
 ' Apply power-on-reset default settings
@@ -138,12 +142,14 @@ PUB ClearAccel{}
 
 PUB ClockFreq(freq)
 ' Set display internal oscillator frequency, in kHz
-'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407
+'   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387,
+'       392, 397, 402, 407
 '   Any other value is ignored
 '   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
     case freq
         core#FOSC_MIN..core#FOSC_MAX:
-            freq := lookdownz(freq: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392, 397, 402, 407) << core#OSCFREQ
+            freq := lookdownz(freq: 333, 337, 342, 347, 352, 357, 362, 367, {
+}           372, 377, 382, 387, 392, 397, 402, 407) << core#OSCFREQ
         other:
             return
 
@@ -322,9 +328,9 @@ PUB Update{} | tmp
     displaybounds(0, 0, _disp_xmax, _disp_ymax)
 
     i2c.start{}
-    i2c.write(SLAVE_WR | _sa0)
-    i2c.write(core#CTRLBYTE_DATA)
-    i2c.wr_block(_ptr_drawbuffer, _buff_sz)
+    i2c.wr_byte(SLAVE_WR | _sa0)
+    i2c.wr_byte(core#CTRLBYTE_DATA)
+    i2c.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     i2c.stop{}
 
 PUB WriteBuffer(ptr_buff, buff_sz) | tmp
@@ -334,9 +340,9 @@ PUB WriteBuffer(ptr_buff, buff_sz) | tmp
     displaybounds(0, 0, _disp_xmax, _disp_ymax)
 
     i2c.start{}
-    i2c.write(SLAVE_WR | _sa0)
-    i2c.write(core#CTRLBYTE_DATA)
-    i2c.wr_block(ptr_buff, _buff_sz)
+    i2c.wr_byte(SLAVE_WR | _sa0)
+    i2c.wr_byte(core#CTRLBYTE_DATA)
+    i2c.wrblock_lsbf(ptr_buff, _buff_sz)
     i2c.stop{}
 
 PRI writeReg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
@@ -358,7 +364,7 @@ PRI writeReg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
 
     i2c.start{}
     repeat tmp from 0 to 2 + nr_bytes
-        ackbit := i2c.write(cmd_pkt.byte[tmp])
+        ackbit := i2c.wr_byte(cmd_pkt.byte[tmp])
         if ackbit == i2c#NAK
             i2c.stop{}
             return

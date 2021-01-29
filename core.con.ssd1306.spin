@@ -15,6 +15,8 @@ CON
     I2C_MAX_FREQ    = 1_000_000
     SLAVE_ADDR      = $3C << 1
 
+    TPOR            = 20_000                    ' usec
+
     CTRLBYTE_CMD    = $00
     CTRLBYTE_DATA   = $40
 
