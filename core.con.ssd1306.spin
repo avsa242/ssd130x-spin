@@ -5,7 +5,7 @@
     Description: SSD1306 OLED/PLED Display driver registers/command set
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Jan 29, 2021
+    Updated: Jan 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,6 +14,8 @@ CON
 
     I2C_MAX_FREQ    = 1_000_000
     SLAVE_ADDR      = $3C << 1
+    SCK_MAX_FREQ    = 10_000_000
+    SPI_MODE        = 0
 
     TPOR            = 20_000                    ' usec
 
@@ -47,6 +49,7 @@ CON
     SET_PAGEADDR    = $22 '- 3 byte command - send page start address, page end address after this byte
 
 'HARDWARE CONFIGURATION
+    DISP_STLINE     = $40   ' | [5:0]
     SEG_MAP0        = $A0 ' Column address 0 is mapped to SEG0
     SEG_MAP127      = $A1 ' Column address 127 is mapped to SEG0
     SETMUXRATIO     = $A8

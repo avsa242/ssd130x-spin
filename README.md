@@ -8,6 +8,7 @@ This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for Solomon S
 ## Salient Features
 
 * I2C connection at up to approx 1MHz (P1), _TBD_ kHz (P2)
+* SPI connection at approx 4MHz (P1)
 * Supports 128x32 and 128x64 displays
 * Display mirroring (horizontal and vertical)
 * Inverted display
@@ -20,7 +21,9 @@ This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for Solomon S
 
 P1/SPIN1:
 * spin-standard-library
-* P1/SPIN1: 1 extra core/cog for the PASM I2C driver
+* P1/SPIN1: 1 extra core/cog for the PASM I2C engine
+_or_
+* P1/SPIN1: 1 extra core/cog for the PASM SPI engine
 
 P2/SPIN2:
 * p2-spin-standard-library
@@ -30,19 +33,18 @@ Presence of lib.gfx.bitmap library
 ## Compiler Compatibility
 
 * P1/SPIN1: OpenSpin (tested with 1.00.81)
-* P2/SPIN2: FastSpin (tested with 4.2.5-beta)
+* P2/SPIN2: FlexSpin (tested with 5.0.6-beta)
 * ~~BST~~ (incompatible - no preprocessor)
 * ~~Propeller Tool~~ (incompatible - no preprocessor)
 * ~~PNut~~ (incompatible - no preprocessor)
 
 ## Limitations
 
-* Doesn't support display modules that have the RESET pin broken out
 * Doesn't support parallel interface-connected displays (currently unplanned)
 * Doesn't support hardware-accelerated scrolling features
 
 ## TODO
 
 - [ ] Support hw-accelerated scrolling
-- [ ] Support SPI-connected displays
-- [ ] Support display modules that have a discrete RESET pin
+- [x] Support SPI-connected displays
+- [x] Support display modules that have a discrete RESET pin

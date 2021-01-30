@@ -3,13 +3,14 @@
     Filename: SSD1306-Demo.spin
     Description: Demo of the SSD1306 driver
     Author: Jesse Burt
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started: Apr 26, 2018
-    Updated: May 6, 2020
+    Updated: Jan 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
-
+'#define SSD130X_I2C
+#define SSD130X_SPI
 
 CON
 
@@ -20,11 +21,21 @@ CON
     LED         = cfg#LED1
     SER_BAUD    = 115_200
 
+#ifdef SSD130X_I2C
+' I2C
     SCL_PIN     = 0
     SDA_PIN     = 1
+    RES_PIN     = -1                            ' optional; -1 to disable
     ADDR_BIT    = 0
     I2C_HZ      = 1_000_000
-
+#elseifdef SSD130X_SPI
+' SPI
+    CS_PIN      = 2
+    SCK_PIN     = 3
+    SDIN_PIN    = 4
+    DC_PIN      = 6
+    RES_PIN     = 5                             ' optional; -1 to disable
+#endif
     WIDTH       = 128
     HEIGHT      = 64
 ' --
@@ -60,7 +71,7 @@ PUB Main{} | time_ms
     disp.mirrorv(TRUE)
 
     demo_greet{}
-    time.sleep(1)
+    time.sleep(5)
     disp.clearall{}
 
     time_ms := 5_000
@@ -494,15 +505,20 @@ PUB Setup{}
     ser.clear{}
     ser.strln(string("Serial terminal started"))
 
-    if disp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, @_framebuff)
-        ser.str(string("SSD1306 driver started. Draw buffer @ $"))
-        ser.hex(disp.address(-2), 8)
+#ifdef SSD130X_I2C
+    if disp.startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, @_framebuff)
+        ser.strln(string("SSD1306 driver started (I2C)"))
+#elseifdef SSD130X_SPI
+    if disp.startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, @_framebuff)
+        ser.strln(string("SSD1306 driver started (SPI)"))
+#endif
         disp.fontscale(1)
         disp.fontsize(6, 8)
         disp.fontaddress(fnt5x8.baseaddr{})
+        disp.reset{}
         disp.defaults{}
     else
-        ser.str(string("SSD1306 driver failed to start - halting"))
+        ser.strln(string("SSD1306 driver failed to start - halting"))
         stop{}
         repeat
     _timer_cog := cognew(cog_timer{}, @_stack_timer)

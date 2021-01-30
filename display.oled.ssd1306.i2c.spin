@@ -21,6 +21,10 @@ CON
     MAX_COLOR       = 1
     BYTESPERPX      = 1
 
+' States for D/C pin
+    DATA            = 1
+    CMD             = 0
+
 ' Display visibility modes
     NORMAL          = 0
     ALL_ON          = 1
@@ -28,12 +32,17 @@ CON
 
 OBJ
 
-    core    : "core.con.ssd1306"
-    time    : "time"
-    i2c     : "com.i2c"
+    core: "core.con.ssd1306"
+    time: "time"
+#ifdef SSD130X_I2C
+    i2c : "com.i2c"                             ' PASM I2C engine (~1MHz)
+#elseifdef SSD130X_SPI
+    spi : "com.spi.bitbang"                     ' PASM SPI engine (~4MHz)
+#endif
 
 VAR
 
+    long _DC, _RES
     long _ptr_drawbuffer
     word _buff_sz
     word bytesperln
@@ -43,7 +52,8 @@ VAR
 PUB Null{}
 ' This is not a top-level object
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, ptr_dispbuff): status
+#ifdef SSD130X_I2C
+PUB Startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
 '   SCL_PIN: 0..63
 '   SDA_PIN: 0..63
@@ -56,6 +66,8 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, ptr_dispbuff): sta
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             time.usleep(core#TPOR)              ' wait for device startup
             _sa0 := ||(ADDR_BIT == 1) << 1      ' slave address bit option
+            _RES := RES_PIN
+
             if i2c.present(SLAVE_WR | _sa0)     ' test device bus presence
                 _disp_width := width
                 _disp_height := height
@@ -71,11 +83,48 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BIT, WIDTH, HEIGHT, ptr_dispbuff): sta
     ' Re-check I/O pin assignments, bus speed, connections, power
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
+#elseifdef SSD130X_SPI
+PUB Startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, ptr_dispbuff): status
+' Start the driver with custom I/O settings
+'   SCL_PIN: 0..63
+'   SDA_PIN: 0..63
+'   I2C_HZ: ~1200..1_000_000
+'   SLAVE_LSB: 0, 1
+'   WIDTH: 96, 128
+'   HEIGHT: 32, 64
+    if lookdown(CS_PIN: 0..31) and lookdown(SCK_PIN: 0..31) and {
+}   lookdown(SDIN_PIN: 0..31) and lookdown(DC_PIN: 0..31)
+        if (status := spi.init(CS_PIN, SCK_PIN, SDIN_PIN, SDIN_PIN, core#SPI_MODE))
+            time.usleep(core#TPOR)              ' wait for device startup
+            _DC := DC_PIN
+            _RES := RES_PIN                     ' -1 to disable
+
+            outa[_DC] := 0
+            dira[_DC] := 1
+            _disp_width := WIDTH
+            _disp_height := HEIGHT
+            _disp_xmax := _disp_width-1
+            _disp_ymax := _disp_height-1
+            ' calc display memory usage from dimensions and 1bpp depth
+            _buff_sz := (_disp_width * _disp_height) / 8
+            bytesperln := _disp_width * BYTESPERPX
+
+            address(ptr_dispbuff)               ' set display buffer address
+            return
+    ' if this point is reached, something above failed
+    ' Re-check I/O pin assignments, bus speed, connections, power
+    ' Lastly - make sure you have at least one free core/cog
+    return FALSE
+#endif
 
 PUB Stop{}
 
     powered(FALSE)
+#ifdef SSD130X_I2C
     i2c.deinit{}
+#elseifdef SSD130X_SPI
+    spi.deinit{}
+#endif
 
 PUB Defaults{}
 ' Apply power-on-reset default settings
@@ -144,7 +193,8 @@ PUB ClockFreq(freq)
 '   Valid values: 333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387,
 '       392, 397, 402, 407
 '   Any other value is ignored
-'   NOTE: Range is interpolated, based solely on the range specified in the datasheet, divided into 16 steps
+'   NOTE: Range is interpolated, based solely on the range specified in the
+'   datasheet, divided into 16 steps
     case freq
         core#FOSC_MIN..core#FOSC_MAX:
             freq := lookdownz(freq: 333, 337, 342, 347, 352, 357, 362, 367, {
@@ -257,7 +307,7 @@ PUB DisplayStartLine(start_line)
         other:
             start_line := 0
 
-    writereg($40, 0, start_line)
+    writereg(core#DISP_STLINE, 0, start_line)
 
 PUB DisplayVisibility(mode)
 ' Set display visibility
@@ -322,15 +372,31 @@ PUB PrechargePeriod(phs1_clks, phs2_clks)
 
     writereg(core#SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
 
+PUB Reset{}
+' Reset the display controller
+    if lookdown(_RES: 0..31)
+        outa[_RES] := 1
+        dira[_RES] := 1
+        time.usleep(3)
+        outa[_RES] := 0
+        time.usleep(3)
+        outa[_RES] := 1
+
 PUB Update{} | tmp
 ' Write display buffer to display
     displaybounds(0, 0, _disp_xmax, _disp_ymax)
 
+#ifdef SSD130X_I2C
     i2c.start{}
     i2c.wr_byte(SLAVE_WR | _sa0)
     i2c.wr_byte(core#CTRLBYTE_DATA)
     i2c.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     i2c.stop{}
+#elseifdef SSD130X_SPI
+    outa[_DC] := DATA
+    spi.deselectafter(true)
+    spi.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
+#endif
 
 PUB WriteBuffer(ptr_buff, buff_sz) | tmp
 ' Write alternate buffer to display
@@ -338,36 +404,63 @@ PUB WriteBuffer(ptr_buff, buff_sz) | tmp
 '   ptr_buff: address of buffer to write to display
     displaybounds(0, 0, _disp_xmax, _disp_ymax)
 
+#ifdef SSD130X_I2C
     i2c.start{}
     i2c.wr_byte(SLAVE_WR | _sa0)
     i2c.wr_byte(core#CTRLBYTE_DATA)
-    i2c.wrblock_lsbf(ptr_buff, _buff_sz)
+    i2c.wrblock_lsbf(ptr_buff, buff_sz)
     i2c.stop{}
+#elseifdef SSD130X_SPI
+    outa[_DC] := DATA
+    spi.deselectafter(true)
+    spi.wrblock_lsbf(ptr_buff, buff_sz)
+#endif
 
 PRI writeReg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
 ' Write nr_bytes from val to device
+#ifdef SSD130X_I2C
     cmd_pkt.byte[0] := SLAVE_WR | _sa0
     cmd_pkt.byte[1] := core#CTRLBYTE_CMD
     case nr_bytes
         0:
             cmd_pkt.byte[2] := reg_nr | val 'Simple command
+            nr_bytes := 3
         1:
             cmd_pkt.byte[2] := reg_nr       'Command w/1-byte argument
             cmd_pkt.byte[3] := val
+            nr_bytes := 4
         2:
             cmd_pkt.byte[2] := reg_nr       'Command w/2-byte argument
             cmd_pkt.byte[3] := val & $FF
             cmd_pkt.byte[4] := (val >> 8) & $FF
+            nr_bytes := 5
         other:
             return
 
     i2c.start{}
-    repeat tmp from 0 to 2 + nr_bytes
-        ackbit := i2c.wr_byte(cmd_pkt.byte[tmp])
-        if ackbit == i2c#NAK
-            i2c.stop{}
-            return
+    i2c.wrblock_lsbf(@cmd_pkt, nr_bytes)
     i2c.stop{}
+#elseifdef SSD130X_SPI
+    case nr_bytes
+        0:
+            cmd_pkt.byte[0] := reg_nr | val 'Simple command
+            nr_bytes := 1
+        1:
+            cmd_pkt.byte[0] := reg_nr       'Command w/1-byte argument
+            cmd_pkt.byte[1] := val
+            nr_bytes := 2
+        2:
+            cmd_pkt.byte[0] := reg_nr       'Command w/2-byte argument
+            cmd_pkt.byte[1] := val & $FF
+            cmd_pkt.byte[2] := (val >> 8) & $FF
+            nr_bytes := 3
+        other:
+            return
+
+    outa[_DC] := CMD
+    spi.deselectafter(true)
+    spi.wrblock_lsbf(@cmd_pkt, nr_bytes)
+#endif
 
 DAT
 {
