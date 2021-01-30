@@ -12,9 +12,9 @@
 
 CON
 
-    I2C_MAX_FREQ    = 1_000_000
+    I2C_MAX_FREQ    = 400_000                   ' max according to datasheet
     SLAVE_ADDR      = $3C << 1
-    SCK_MAX_FREQ    = 10_000_000
+    SPI_MAX_FREQ    = 10_000_000                ' max according to datasheet
     SPI_MODE        = 0
 
     TPOR            = 20_000                    ' usec

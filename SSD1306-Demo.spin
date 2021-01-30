@@ -9,8 +9,8 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-'#define SSD130X_I2C
-#define SSD130X_SPI
+#define SSD130X_I2C
+'#define SSD130X_SPI
 
 CON
 
@@ -27,7 +27,7 @@ CON
     SDA_PIN     = 1
     RES_PIN     = -1                            ' optional; -1 to disable
     ADDR_BIT    = 0
-    I2C_HZ      = 1_000_000
+    I2C_HZ      = 400_000                       ' max: 400_000 (unenforced)
 #elseifdef SSD130X_SPI
 ' SPI
     CS_PIN      = 2
@@ -37,7 +37,7 @@ CON
     RES_PIN     = 5                             ' optional; -1 to disable
 #endif
     WIDTH       = 128
-    HEIGHT      = 64
+    HEIGHT      = 32
 ' --
     BPP         = disp#BYTESPERPX
     BYTESPERLN  = WIDTH * BPP
@@ -50,7 +50,7 @@ OBJ
     cfg         : "core.con.boardcfg.flip"
     ser         : "com.serial.terminal.ansi"
     time        : "time"
-    disp        : "display.oled.ssd1306.i2c"
+    disp        : "display.oled.ssd1306.i2cspi"
     int         : "string.integer"
     fnt5x8      : "font.5x8"
 
