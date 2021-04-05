@@ -1,7 +1,7 @@
 {
     --------------------------------------------
-    Filename: display.oled.ssd1306.i2c.spin
-    Description: Driver for Solomon Systech SSD1306 I2C OLED display drivers
+    Filename: display.oled.ssd1306.i2cspi.spin
+    Description: Driver for Solomon Systech SSD1306 OLED displays
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2018
