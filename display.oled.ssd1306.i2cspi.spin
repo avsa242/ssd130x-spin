@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Oct 18, 2021
+    Updated: Jan 1, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -139,7 +139,7 @@ PUB Defaults{}
     powered(FALSE)
     displaylines(64)
     displaystartline(0)
-    chargepumpreg(TRUE)
+    chgpumpvoltage(7_500)
     addrmode(PAGE)
     contrast(127)
     displayvisibility(NORMAL)
@@ -150,7 +150,7 @@ PUB Preset_128x{}
 ' Preset: 128px wide, determine settings for height at runtime
     displaylines(_disp_height)
     displaystartline(0)
-    chargepumpreg(TRUE)
+    chgpumpvoltage(7_500)
     addrmode(HORIZ)
     displayvisibility(NORMAL)
     case _disp_height
@@ -166,7 +166,7 @@ PUB Preset_128x32{}
 ' Preset: 128px wide, setup for 32px height
     displaylines(32)
     displaystartline(0)
-    chargepumpreg(TRUE)
+    chgpumpvoltage(7_500)
     addrmode(HORIZ)
     displayvisibility(NORMAL)
     compincfg(0, 0)
@@ -176,7 +176,7 @@ PUB Preset_128x64{}
 ' Preset: 128px wide, setup for 64px height
     displaylines(64)
     displaystartline(0)
-    chargepumpreg(TRUE)
+    chgpumpvoltage(7_500)
     addrmode(HORIZ)
     displayvisibility(NORMAL)
     compincfg(1, 0)
@@ -204,17 +204,27 @@ PUB AddrMode(mode)
 
     writereg(core#MEM_ADDRMODE, 1, mode)
 
-PUB ChargePumpReg(enabled)
-' Enable Charge Pump Regulator when display power enabled
-'   Valid values: TRUE (-1 or 1), FALSE (0)
+PUB ChgPumpVoltage(v)
+' Set charge pump regulator voltage, in millivolts
+'   Valid values:
+'       0 (off), 6_000, *7_500, 8_500, 9_000
 '   Any other value is ignored
-    case ||(enabled)
-        0, 1:
-            enabled := lookupz(||(enabled): $10, $14)
+'   NOTE: This must be called before display power is enabled with Powered()
+    case v
+        0_000:
+            v := core#CHGP_OFF
+        6_000:
+            v := core#CHGP_6000
+        7_500:
+            v := core#CHGP_7500
+        8_500:
+            v := core#CHGP_8500
+        9_000:
+            v := core#CHGP_9000
         other:
             return
 
-    writereg(core#CHARGEPUMP, 1, enabled)
+    writereg(core#CHGPUMP, 1, v)
 
 PUB ClearAccel{}
 ' Dummy method
