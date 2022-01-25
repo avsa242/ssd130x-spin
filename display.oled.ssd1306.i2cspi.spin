@@ -5,11 +5,11 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Jan 1, 2022
+    Updated: Jan 25, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-#define SSD130X
+#define 1BPP
 #define MEMMV_NATIVE bytemove
 #include "lib.gfx.bitmap.spin"
 
@@ -226,8 +226,9 @@ PUB ChgPumpVoltage(v)
 
     writereg(core#CHGPUMP, 1, v)
 
-PUB ClearAccel{}
-' Dummy method
+PUB Clear{}
+' Clear the display buffer
+    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 
 PUB ClockFreq(freq)
 ' Set display internal oscillator frequency, in kHz
@@ -388,6 +389,30 @@ PUB MirrorV(state)
 
     writereg(core#COMDIR_NORM, 0, state)
 
+#ifdef GFX_DIRECT
+PUB Plot(x, y, color)
+' Plot pixel at (x, y) in color (direct to display)
+#else
+PUB Plot(x, y, color)
+' Plot pixel at (x, y) in color (buffered)
+    case color
+        1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
+        0:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
+        -1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
+        OTHER:
+            return
+#endif
+
+PUB Point(x, y): pix_clr
+' Get color of pixel at x, y
+    x := 0 #> x <# _disp_xmax
+    y := 0 #> y <# _disp_ymax
+
+    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
+
 PUB Powered(state) | tmp
 ' Enable display power
     case ||(state)
@@ -456,6 +481,13 @@ PUB WriteBuffer(ptr_buff, buff_sz) | tmp
     spi.deselectafter(true)
     spi.wrblock_lsbf(ptr_buff, buff_sz)
 #endif
+
+PRI memFill(xs, ys, val, count)
+' Fill region of display buffer memory
+'   xs, ys: Start of region
+'   val: Color
+'   count: Number of consecutive memory locations to write
+    bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
 
 PRI writeReg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
 ' Write nr_bytes from val to device

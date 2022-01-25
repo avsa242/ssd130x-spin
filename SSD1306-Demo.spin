@@ -3,9 +3,9 @@
     Filename: SSD1306-Demo.spin
     Description: Demo of the SSD1306 driver
     Author: Jesse Burt
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started: Apr 26, 2018
-    Updated: Oct 18, 2021
+    Updated: Jan 25, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -65,65 +65,65 @@ VAR
 PUB Main{} | time_ms
 
     setup{}
-    disp.clearall{}
+    disp.clear{}
 
     disp.mirrorh(TRUE)
     disp.mirrorv(TRUE)
 
     demo_greet{}
     time.sleep(5)
-    disp.clearall{}
+    disp.clear{}
 
     time_ms := 5_000
 
     ser.position(0, 3)
 
     demo_sinewave(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_triwave(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_memscroller(time_ms, $0000, $FFFF-BUFFSZ)
-    disp.clearall{}
+    disp.clear{}
 
     demo_bitmap(time_ms, @Beanie)
-    disp.clearall{}
+    disp.clear{}
 
     demo_box(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_boxfilled(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_linesweepx(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_linesweepy(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_line(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_plot(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_bouncingball(time_ms, 5)
-    disp.clearall{}
+    disp.clear{}
 
     demo_circle(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_wander(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_seqtext(time_ms)
-    disp.clearall{}
+    disp.clear{}
 
     demo_rndtext(time_ms)
 
     demo_contrast(2, 1)
-    disp.clearall{}
+    disp.clear{}
 
     stop{}
     repeat
