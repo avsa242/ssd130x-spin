@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2021
     Created: Apr 26, 2018
-    Updated: Jan 25, 2022
+    Updated: Jan 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -49,10 +49,6 @@ OBJ
 VAR
 
     long _DC, _RES
-    long _ptr_drawbuffer
-    word _buff_sz
-    word _bytesperln
-    byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
 
 PUB Null{}

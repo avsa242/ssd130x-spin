@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Jan 25, 2022
+    Updated: Jan 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,7 +39,6 @@ CON
 OBJ
 
     core: "core.con.ssd1306"
-    time: "time"
 #ifdef SSD130X_I2C
     i2c : "com.i2c"                             ' I2C engine (~1MHz)
 #elseifdef SSD130X_SPI
@@ -49,10 +48,6 @@ OBJ
 VAR
 
     long _CS, _DC, _RES
-    long _ptr_drawbuffer
-    word _buff_sz
-    word _bytesperln
-    byte _disp_width, _disp_height, _disp_xmax, _disp_ymax
     byte _sa0
 
 PUB Null()
