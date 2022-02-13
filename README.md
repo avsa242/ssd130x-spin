@@ -1,7 +1,7 @@
-# ssd1306-spin
+# ssd130x-spin
 --------------
 
-This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for the Solomon Systech SSD1306 OLED display controller.
+This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for the Solomon Systech SSD130x OLED display controllerx.
 
 **IMPORTANT**: This software is meant to be used with the [spin-standard-library](https://github.com/avsa242/spin-standard-library) (P8X32A) or [p2-spin-standard-library](https://github.com/avsa242/p2-spin-standard-library) (P2X8C4M64P). Please install the applicable library first before attempting to use this code, otherwise you will be missing several files required to build the project.
 
@@ -34,19 +34,22 @@ Presence of lib.gfx.bitmap library
 
 ## Compiler Compatibility
 
-* P1/SPIN1: OpenSpin (tested with 1.00.81)
-* P2/SPIN2: FlexSpin (tested with 5.0.6-beta)
+* P1/SPIN1 OpenSpin (bytecode): Untested (deprecated)
+* P1/SPIN1 FlexSpin (bytecode): OK, tested with 5.9.9-beta
+* P1/SPIN1 FlexSpin (native): OK, tested with 5.9.9-beta
+* ~~P2/SPIN2 FlexSpin (nu-code): FTBFS, tested with 5.9.9-beta~~
+* P2/SPIN2 FlexSpin (native): OK, tested with 5.9.9-beta
 * ~~BST~~ (incompatible - no preprocessor)
 * ~~Propeller Tool~~ (incompatible - no preprocessor)
 * ~~PNut~~ (incompatible - no preprocessor)
+
+# Hardware Compatibility
+
+* SSD1306 (tested)
+* SSD1309 (tested)
 
 ## Limitations
 
 * Doesn't support parallel interface-connected displays (currently unplanned)
 * Doesn't support hardware-accelerated scrolling features
 
-## TODO
-
-- [ ] Support hw-accelerated scrolling
-- [x] Support SPI-connected displays
-- [x] Support display modules that have a discrete RESET pin
