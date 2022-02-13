@@ -49,7 +49,7 @@ OBJ
 VAR
 
     long _CS, _DC, _RES
-    byte _sa0
+    byte _addr_bits
 
 PUB Null{}
 ' This is not a top-level object
@@ -67,10 +67,10 @@ PUB Startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_disp
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             time.usleep(core#TPOR)              ' wait for device startup
-            _sa0 := ||(ADDR_BIT == 1) << 1      ' slave address bit option
+            _addr_bits := ||(ADDR_BITS == 1) << 1 ' slave address bit option
             _RES := RES_PIN                     ' -1 to disable
 
-            if i2c.present(SLAVE_WR | _sa0)     ' test device bus presence
+            if i2c.present(SLAVE_WR | _addr_bits) ' test device bus presence
                 _disp_width := width
                 _disp_height := height
                 _disp_xmax := _disp_width-1
@@ -206,6 +206,28 @@ PUB AddrMode(mode)
 
     writereg(core#MEM_ADDRMODE, 1, mode)
 
+#ifdef GFX_DIRECT
+PUB Bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
+' Display bitmap
+'   ptr_bmap: pointer to bitmap data
+'   (sx, sy): upper-left corner of bitmap
+'   (ex, ey): lower-right corner of bitmap
+    displaybounds(sx, sy, ex, ey)
+    bm_sz := ((ex-sx) * (ey-sy)) / 8
+#ifdef SSD130X_I2C
+    i2c.start()
+    i2c.wr_byte(SLAVE_WR | _addr_bits)
+    i2c.wr_byte(core#CTRLBYTE_DATA)
+    i2c.wrblock_lsbf(ptr_bmap, bm_sz)
+    i2c.stop()
+#elseifdef SSD130X_SPI
+    pinw(_DC, DATA)
+    pinl(_CS)
+    spi.wrblock_lsbf(ptr_bmap, bm_sz)
+    pinh(_CS)
+#endif
+#endif
+
 PUB ChgPumpVoltage(v)
 ' Set charge pump regulator voltage, in millivolts
 '   Valid values:
@@ -233,8 +255,17 @@ PUB ChgPumpVoltage(v)
 #endif
 
 PUB Clear{}
-' Clear the display buffer
+' Clear the display
+#ifdef GFX_DIRECT
+    i2c.start
+    i2c.write(SLAVE_WR | _addr_bits)
+    i2c.wr_byte(core#CTRLBYTE_DATA)
+    repeat _buff_sz
+        i2c.wr_byte(_bgcolor)
+    i2c.stop
+#else
     bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
+#endif
 
 PUB ClockFreq(freq)
 ' Set display internal oscillator frequency, in kHz
@@ -487,7 +518,7 @@ PUB Update{} | tmp
 
 #ifdef SSD130X_I2C
     i2c.start{}
-    i2c.wr_byte(SLAVE_WR | _sa0)
+    i2c.wr_byte(SLAVE_WR | _addr_bits)
     i2c.wr_byte(core#CTRLBYTE_DATA)
     i2c.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     i2c.stop{}
@@ -505,7 +536,7 @@ PUB WriteBuffer(ptr_buff, buff_sz) | tmp
 
 #ifdef SSD130X_I2C
     i2c.start{}
-    i2c.wr_byte(SLAVE_WR | _sa0)
+    i2c.wr_byte(SLAVE_WR | _addr_bits)
     i2c.wr_byte(core#CTRLBYTE_DATA)
     i2c.wrblock_lsbf(ptr_buff, buff_sz)
     i2c.stop{}
@@ -527,7 +558,7 @@ PRI memFill(xs, ys, val, count)
 PRI writeReg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
 ' Write nr_bytes from val to device
 #ifdef SSD130X_I2C
-    cmd_pkt.byte[0] := SLAVE_WR | _sa0
+    cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
     cmd_pkt.byte[1] := core#CTRLBYTE_CMD
     case nr_bytes
         0:
