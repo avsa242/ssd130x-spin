@@ -293,7 +293,9 @@ PUB Clear()
     i2c.stop
 #elseifdef SSD130X_SPI
     pinw(_DC, DATA)
+    pinl(_CS)
     spi.wrbytex(_bgcolor, _buff_sz)
+    pinh(_CS)
 #endif
 #else
     bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
