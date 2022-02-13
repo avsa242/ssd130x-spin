@@ -221,10 +221,9 @@ PUB Bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
     i2c.wrblock_lsbf(ptr_bmap, bm_sz)
     i2c.stop()
 #elseifdef SSD130X_SPI
-    pinw(_DC, DATA)
-    pinl(_CS)
+    outa[_DC] := DATA
+    spi.deselectafter(true)
     spi.wrblock_lsbf(ptr_bmap, bm_sz)
-    pinh(_CS)
 #endif
 #endif
 
@@ -233,11 +232,17 @@ PUB Char(ch) | ch_offs
 ' Draw a character from the loaded font
     ch_offs := _font_addr + (ch << 3)
     displaybounds(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
+#ifdef SSD130X_I2C
     i2c.start{}
     i2c.write(SLAVE_WR | _addr_bits)
     i2c.write(core#CTRLBYTE_DATA)
     i2c.wrblock_lsbf(ch_offs, _charcell_w)
     i2c.stop{}
+#elseifdef SSD130X_SPI
+    outa[_DC] := DATA
+    spi.deselectafter(true)
+    spi.wrblock_lsbf(ch_offs, _charcell_w)
+#endif
     _charpx_x += _charcell_w                    ' go to next cell
     if (_charpx_x > _charpx_xmax)               ' last col?
         _charpx_x := 0                          ' go to first col of
@@ -275,12 +280,19 @@ PUB ChgPumpVoltage(v)
 PUB Clear{}
 ' Clear the display
 #ifdef GFX_DIRECT
+#ifdef SSD130X_I2C
     i2c.start
     i2c.write(SLAVE_WR | _addr_bits)
     i2c.wr_byte(core#CTRLBYTE_DATA)
     repeat _buff_sz
         i2c.wr_byte(_bgcolor)
     i2c.stop
+#elseifdef SSD130X_SPI
+    outa[_DC] := DATA
+    spi.deselectafter(true)
+    repeat _buff_sz
+        spi.wr_byte(_bgcolor)
+#endif
 #else
     bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #endif
