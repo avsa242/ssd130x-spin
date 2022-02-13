@@ -230,6 +230,24 @@ PUB Bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
 #endif
 #endif
 
+#ifdef GFX_DIRECT
+PUB Char(ch) | ch_offs
+' Draw a character from the loaded font
+    ch_offs := _font_addr + (ch << 3)
+    displaybounds(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
+    i2c.start()
+    i2c.write(SLAVE_WR | _addr_bits)
+    i2c.write(core.CTRLBYTE_DATA)
+    i2c.wrblock_lsbf(ch_offs, _charcell_w)
+    i2c.stop()
+    _charpx_x += _charcell_w                    ' go to next cell
+    if (_charpx_x > _charpx_xmax)               ' last col?
+        _charpx_x := 0                          ' go to first col of
+        _charpx_y += _charcell_h                '   next line
+        if (_charpx_y > _charpx_ymax)           ' last col of last row?
+            _charpx_x := _charpx_y := 0         ' wrap to beginning of disp
+#endif
+
 PUB ChgPumpVoltage(v)
 ' Set charge pump regulator voltage, in millivolts
 '   Valid values:
