@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Feb 13, 2022
+    Updated: Feb 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -216,18 +216,8 @@ PUB Bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
 '   (ex, ey): lower-right corner of bitmap
     displaybounds(sx, sy, ex, ey)
     bm_sz := ((ex-sx) * (ey-sy)) / 8
-#ifdef SSD130X_I2C
-    i2c.start()
-    i2c.wr_byte(SLAVE_WR | _addr_bits)
-    i2c.wr_byte(core.CTRLBYTE_DATA)
-    i2c.wrblock_lsbf(ptr_bmap, bm_sz)
-    i2c.stop()
-#elseifdef SSD130X_SPI
-    pinw(_DC, DATA)
-    pinl(_CS)
-    spi.wrblock_lsbf(ptr_bmap, bm_sz)
-    pinh(_CS)
-#endif
+
+    writebuffer(ptr_bmap, bm_sz)
 #endif
 
 #ifdef GFX_DIRECT
@@ -235,19 +225,10 @@ PUB Char(ch) | ch_offs
 ' Draw a character from the loaded font
     ch_offs := _font_addr + (ch << 3)
     displaybounds(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
-#ifdef SSD130X_I2C
-    i2c.start()
-    i2c.write(SLAVE_WR | _addr_bits)
-    i2c.write(core.CTRLBYTE_DATA)
-    i2c.wrblock_lsbf(ch_offs, _charcell_w)
-    i2c.stop()
-#elseifdef SSD130X_SPI
-    pinw(_DC, DATA)
-    pinl(_CS)
-    spi.wrblock_lsbf(ch_offs, _charcell_w)
-    pinh(_CS)
-#endif
-    _charpx_x += _charcell_w                    ' go to next cell
+
+    writebuffer(ch_offs, _charcell_w)
+
+    _charpx_x += _charcell_w                    ' go to next column
     if (_charpx_x > _charpx_xmax)               ' last col?
         _charpx_x := 0                          ' go to first col of
         _charpx_y += _charcell_h                '   next line
@@ -566,8 +547,7 @@ PUB WriteBuffer(ptr_buff, buff_sz) | tmp
 ' Write alternate buffer to display
 '   buff_sz: bytes to write
 '   ptr_buff: address of buffer to write to display
-    displaybounds(0, 0, _disp_xmax, _disp_ymax)
-
+'   NOTE: Does not set position on display
 #ifdef SSD130X_I2C
     i2c.start()
     i2c.wr_byte(SLAVE_WR | _addr_bits)
