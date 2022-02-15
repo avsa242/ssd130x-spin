@@ -5,7 +5,7 @@
     Description: SSD130x-specific constants
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Feb 13, 2022
+    Updated: Feb 15, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -22,8 +22,13 @@ CON
     CTRLBYTE_CMD    = $00
     CTRLBYTE_DATA   = $40
 
+#ifdef SSD1306
     FOSC_MIN        = 333
     FOSC_MAX        = 407
+#elseifdef SSD1309
+    FOSC_MIN        = 360
+    FOSC_MAX        = 540
+#endif
 
 'FUNDAMENTAL COMMAND SET
     CONTRAST        = $81
