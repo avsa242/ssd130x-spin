@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Feb 14, 2022
+    Updated: Feb 15, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -297,16 +297,13 @@ PUB ClockFreq(freq)
     case freq
         core.FOSC_MIN..core.FOSC_MAX:
 #ifdef SSD1306
-            freq := lookdownz(freq: 333, 337, 342, 347, 352, 357, 362, 367, {
-}           372, 377, 382, 387, 392, 397, 402, 407) << core#OSCFREQ
+            freq := ((freq / 5) - 66) << core.OSCFREQ
 #elseifdef SSD1309
-            freq := lookdownz(kHz: 360, 372, 384, 396, 408, 420, 432, 444, 456,{
-}           468, 480, 492, 504, 516, 528, 540) << core#OSCFREQ
+            freq := ((freq / 12) - 30) << core.OSCFREQ
 #endif
+            writereg(core.SETOSCFREQ, 1, freq)
         other:
             return
-
-    writereg(core.SETOSCFREQ, 1, freq)
 
 PUB COMLogicHighLevel(level)
 ' Set COMmon pins high logic level, relative to Vcc
