@@ -201,10 +201,9 @@ PUB AddrMode(mode)
 '   Any other value is ignored
     case mode
         HORIZ, VERT, PAGE:
+            writereg(core#MEM_ADDRMODE, 1, mode)
         other:
             return
-
-    writereg(core#MEM_ADDRMODE, 1, mode)
 
 #ifdef GFX_DIRECT
 PUB Bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
@@ -361,10 +360,9 @@ PUB Contrast(level)
 '   Any other value sets the default value
     case level
         0..255:
+            writereg(core#CONTRAST, 1, level)
         other:
             level := 127
-
-    writereg(core#CONTRAST, 1, level)
 
 PUB DisplayBounds(sx, sy, ex, ey)
 ' Set displayable area
@@ -395,10 +393,9 @@ PUB DisplayLines(lines)
     case lines
         16..64:
             lines -= 1
+            writereg(core#SETMUXRATIO, 1, lines)
         other:
             return
-
-    writereg(core#SETMUXRATIO, 1, lines)
 
 PUB DisplayOffset(offset)
 ' Set display offset/vertical shift
@@ -406,10 +403,9 @@ PUB DisplayOffset(offset)
 '   Any other value sets the default value
     case offset
         0..63:
+            writereg(core#SETDISPOFFS, 1, offset)
         other:
             offset := 0
-
-    writereg(core#SETDISPOFFS, 1, offset)
 
 PUB DisplayStartLine(start_line)
 ' Set Display Start Line
@@ -417,10 +413,9 @@ PUB DisplayStartLine(start_line)
 '   Any other value sets the default value
     case start_line
         0..63:
+            writereg(core#DISP_STLINE, 0, start_line)
         other:
             start_line := 0
-
-    writereg(core#DISP_STLINE, 0, start_line)
 
 PUB DisplayVisibility(mode)
 ' Set display visibility
@@ -442,10 +437,9 @@ PUB MirrorH(state)
 '   NOTE: Takes effect only after next display update
     case ||(state)
         0, 1: state := ||(state)
+            writereg(core#SEG_MAP0, 0, state)
         other:
             return
-
-    writereg(core#SEG_MAP0, 0, state)
 
 PUB MirrorV(state)
 ' Mirror display, vertically
@@ -492,9 +486,9 @@ PUB Powered(state) | tmp
     case ||(state)
         0, 1:
             state := ||(state) + core#DISP_OFF
+            writereg(state, 0, 0)
         other:
             return
-    writereg(state, 0, 0)
 
 PUB PrechargePeriod(phs1_clks, phs2_clks)
 ' Set display refresh pre-charge period, in display clocks
