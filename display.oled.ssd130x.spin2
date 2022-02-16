@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Feb 15, 2022
+    Updated: Feb 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -304,39 +304,6 @@ PUB ClockFreq(freq)
         other:
             return
 
-PUB COMLogicHighLevel(level)
-' Set COMmon pins high logic level, relative to Vcc
-'   Valid values:
-'       SSD1306:
-'           0_65: 0.65 * Vcc
-'          *0_77: 0.77 * Vcc
-'           0_83: 0.83 * Vcc
-'       SSD1309:
-'           0_64: 0.64 * Vcc
-'          *0_78: 0.78 * Vcc
-'           0_84: 0.84 * Vcc
-'   Any other value sets the default value
-    case level
-#ifdef SSD1306
-        0_65:
-            level := %000 << core.VCOMH
-        0_77:
-            level := %010 << core.VCOMH
-        0_83:
-            level := %011 << core.VCOMH
-#elseifdef SSD1309
-        0_64:
-            level := %0000 << core.VCOMH
-        0_78:
-            level := %1101 << core.VCOMH
-        0_84:
-            level := %1111 << core.VCOMH
-#endif
-        other:
-            return
-
-    writereg(core.SETVCOMDESEL, 1, level)
-
 PUB COMPinCfg(pin_config, remap) | config
 ' Set COM Pins Hardware Configuration and Left/Right Remap
 '   Valid values:
@@ -533,6 +500,39 @@ PUB Update() | tmp
     spi.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     pinh(_CS)
 #endif
+
+PUB VCOMHVoltage(level)
+' Set COM output voltage, in millivolts
+'   Valid values:
+'       SSD1306:
+'           0_650: 0.65 * Vcc
+'          *0_770: 0.77 * Vcc
+'           0_830: 0.83 * Vcc
+'       SSD1309:
+'           0_640: 0.64 * Vcc
+'          *0_780: 0.78 * Vcc
+'           0_840: 0.84 * Vcc
+'   Any other value is ignored
+    case level
+#ifdef SSD1306
+        0_650:
+            level := %000 << core.VCOMH
+        0_770:
+            level := %010 << core.VCOMH
+        0_830:
+            level := %011 << core.VCOMH
+#elseifdef SSD1309
+        0_640:
+            level := %0000 << core.VCOMH
+        0_780:
+            level := %1101 << core.VCOMH
+        0_840:
+            level := %1111 << core.VCOMH
+#endif
+        other:
+            return
+
+    writereg(core.SETVCOMDESEL, 1, level)
 
 PUB WriteBuffer(ptr_buff, buff_sz) | tmp
 ' Write alternate buffer to display
