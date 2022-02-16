@@ -441,12 +441,14 @@ PUB Plot(x, y, color)
             return
 #endif
 
+#ifndef GFX_DIRECT
 PUB Point(x, y): pix_clr
 ' Get color of pixel at x, y
     x := 0 #> x <# _disp_xmax
     y := 0 #> y <# _disp_ymax
 
     return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
+#endif
 
 PUB Powered(state) | tmp
 ' Enable display power
