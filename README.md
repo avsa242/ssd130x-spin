@@ -18,6 +18,7 @@ This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for the Solom
 * Low-level display control: Logic voltages, oscillator frequency, addressing mode, row/column mapping
 * Supports display modules with or without discrete RESET pin
 * Integration with the generic bitmap graphics library
+* Buffered display or direct-to-display drawing (*see limitations*)
 
 ## Requirements
 
@@ -43,7 +44,7 @@ Presence of lib.gfx.bitmap library
 * ~~Propeller Tool~~ (incompatible - no preprocessor)
 * ~~PNut~~ (incompatible - no preprocessor)
 
-# Hardware Compatibility
+## Hardware Compatibility
 
 * SSD1306 (tested)
 * SSD1309 (tested)
@@ -52,4 +53,5 @@ Presence of lib.gfx.bitmap library
 
 * Doesn't support parallel interface-connected displays (currently unplanned)
 * Doesn't support hardware-accelerated scrolling features
+* Unbuffered/Direct-draw operations are limited, due to the nature of serial 1bpp displays. Box(), Line(), Circle and Plot() aren't implemented.
 
