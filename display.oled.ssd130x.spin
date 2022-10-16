@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Oct 6, 2022
+    Updated: Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -43,7 +43,7 @@ OBJ
 #ifdef SSD130X_I2C
     i2c : "com.i2c"                             ' PASM I2C engine (~1MHz)
 #elseifdef SSD130X_SPI
-    spi : "com.spi.bitbang"                     ' PASM SPI engine (~4MHz)
+    spi : "com.spi.4mhz"                        ' PASM SPI engine (~4MHz)
 #endif
 
 VAR
@@ -122,7 +122,7 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, ptr_dispbu
 #endif
 
 PUB stop{}
-
+' Stop the driver
     powered(FALSE)
 #ifdef SSD130X_I2C
     i2c.deinit{}
@@ -219,7 +219,9 @@ PUB bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
 #endif
 
 #ifdef GFX_DIRECT
-PUB char(ch) | ch_offs
+PUB tx = putchar
+PUB char = putchar
+PUB putchar(ch) | ch_offs
 ' Draw a character from the loaded font
     ch_offs := _font_addr + (ch << 3)
     disp_area(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
