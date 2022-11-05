@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2022
     Created: Apr 26, 2018
-    Updated: Nov 1, 2022
+    Updated: Nov 5, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -229,7 +229,7 @@ PUB bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
     disp_area(sx, sy, ex, ey)
     bm_sz := ((ex-sx) * (ey-sy)) / 8
 
-    writebuffer(ptr_bmap, bm_sz)
+    wr_buffer(ptr_bmap, bm_sz)
 #endif
 
 #ifdef GFX_DIRECT
@@ -240,7 +240,7 @@ PUB putchar(ch) | ch_offs
     ch_offs := _font_addr + (ch << 3)
     disp_area(_charpx_x, _charpx_y, _charpx_x+_charcell_w, _charpx_y+_charcell_h)
 
-    writebuffer(ch_offs, _charcell_w)
+    wr_buffer(ch_offs, _charcell_w)
 
     _charpx_x += _charcell_w                    ' go to next column
     if (_charpx_x > _charpx_xmax)               ' last col?
