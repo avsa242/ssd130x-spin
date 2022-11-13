@@ -27,11 +27,11 @@ P1/SPIN1:
 * P1/SPIN1: 1 extra core/cog for the PASM I2C engine
 _or_
 * P1/SPIN1: 1 extra core/cog for the PASM SPI engine
-* lib.gfx.bitmap.spin (provided by spin-standard-library)
+* graphics.common.spinh (provided by spin-standard-library)
 
 P2/SPIN2:
 * p2-spin-standard-library
-* lib.gfx.bitmap.spin2 (provided by p2-spin-standard-library)
+* graphics.common.spin2h (provided by p2-spin-standard-library)
 
 ## Compiler Compatibility
 
