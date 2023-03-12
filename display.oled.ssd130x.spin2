@@ -216,7 +216,7 @@ PUB addr_mode(mode)
 '   Any other value is ignored
     case mode
         HORIZ, VERT, PAGE:
-            writereg(core.MEM_ADDRMODE, 1, mode)
+            writereg(core.MEM_ADDRMODE, 1, @mode)
         other:
             return
 
@@ -273,7 +273,7 @@ PUB chg_pump_voltage(v)
         other:
             return
 
-    writereg(core.CHGPUMP, 1, v)
+    writereg(core.CHGPUMP, 1, @v)
 #endif
 
 PUB clear()
@@ -315,7 +315,7 @@ PUB clk_freq(freq)
 #elseifdef SSD1309
             freq := ((freq / 12) - 30) << core.OSCFREQ
 #endif
-            writereg(core.SETOSCFREQ, 1, freq)
+            writereg(core.SETOSCFREQ, 1, @freq)
         other:
             return
 
@@ -336,23 +336,25 @@ PUB com_pin_cfg(pin_config, remap) | config
             config := config | (1 << 5)
         other:
 
-    writereg(core.SETCOM_CFG, 1, config)
+    writereg(core.SETCOM_CFG, 1, @config)
 
 PUB contrast(level)
 ' Set Contrast Level
 '   Valid values: 0..255 (clamped to range)
     level := (0 #> level <# 255)
-    writereg(core.CONTRAST, 1, level)
+    writereg(core.CONTRAST, 1, @level)
 
-PUB draw_area(sx, sy, ex, ey)
+PUB draw_area(sx, sy, ex, ey) | tmp
 ' Set displayable area
     ifnot (lookup(sx: 0..127) or lookup(sy: 0..63) or lookup(ex: 0..127) or lookup(ey: 0..63))
         return
 
     sy >>= 3                                    ' convert y-coordinates to
     ey >>= 3                                    '   page numbers
-    writereg(core.SET_COLADDR, 2, (ex << 8) | sx)
-    writereg(core.SET_PAGEADDR, 2, (ey << 8) | sy)
+    tmp := (ex << 8) | sx
+    writereg(core.SET_COLADDR, 2, @tmp)
+    tmp := (ey << 8) | sy
+    writereg(core.SET_PAGEADDR, 2, @tmp)
 
 PUB invert_colors(state) | tmp
 ' Invert display colors
@@ -367,14 +369,14 @@ PUB disp_lines(lines)
 '   Typical values: 32, 64
 '   Any other value is ignored
     lines := ((16 #> lines <# 64) - 1)
-    writereg(core.SETMUXRATIO, 1, lines)
+    writereg(core.SETMUXRATIO, 1, @lines)
 
 PUB disp_offset(offset)
 ' Set display offset/vertical shift
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
     offset := (0 #> offset <# 63)
-    writereg(core.SETDISPOFFS, 1, offset)
+    writereg(core.SETDISPOFFS, 1, @offset)
 
 PUB disp_start_line(line)
 ' Set Display Start Line
@@ -445,12 +447,13 @@ PUB powered(state) | tmp
     state := (((state <> 0) & 1) + core.DISP_OFF)
     command(state)
 
-PUB precharge_period(phs1_clks, phs2_clks)
+PUB precharge_period(phs1_clks, phs2_clks) | tmp
 ' Set display refresh pre-charge period, in display clocks
 '   Valid values: 1..15 (clamped to range)
     phs1_clks := (1 #> phs1_clks <# 15)
     phs2_clks := (1 #> phs2_clks <# 15)
-    writereg(core.SETPRECHARGE, 1, (phs2_clks << 4) | phs1_clks)
+    tmp := (phs2_clks << 4) | phs1_clks
+    writereg(core.SETPRECHARGE, 1, @tmp)
 
 PUB reset()
 ' Reset the display controller
@@ -509,7 +512,7 @@ PUB vcomh_voltage(level)
         other:
             return
 
-    writereg(core.SETVCOMDESEL, 1, level)
+    writereg(core.SETVCOMDESEL, 1, @level)
 
 PUB wr_buffer(ptr_buff, buff_sz) | tmp
 ' Write alternate buffer to display
@@ -555,44 +558,21 @@ PRI memfill(xs, ys, val, count)
     bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
 #endif
 
-PRI writereg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
+PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
 ' Write nr_bytes from val to device
 #ifdef SSD130X_I2C
     cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
     cmd_pkt.byte[1] := core.CTRLBYTE_CMD
-    case nr_bytes
-        1:
-            cmd_pkt.byte[2] := reg_nr       'Command w/1-byte argument
-            cmd_pkt.byte[3] := val
-            nr_bytes := 4
-        2:
-            cmd_pkt.byte[2] := reg_nr       'Command w/2-byte argument
-            cmd_pkt.byte[3] := val.byte[0]
-            cmd_pkt.byte[4] := val.byte[1]
-            nr_bytes := 5
-        other:
-            return
-
-    i2c.start()
-    i2c.wrblock_lsbf(@cmd_pkt, nr_bytes)
-    i2c.stop()
+    cmd_pkt.byte[2] := reg_nr
+    i2c.start{}
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.wrblock_lsbf(ptr_buff, nr_bytes)
+    i2c.stop{}
 #elseifdef SSD130X_SPI
-    case nr_bytes
-        1:
-            cmd_pkt.byte[0] := reg_nr       'Command w/1-byte argument
-            cmd_pkt.byte[1] := val
-            nr_bytes := 2
-        2:
-            cmd_pkt.byte[0] := reg_nr       'Command w/2-byte argument
-            cmd_pkt.byte[1] := val.byte[0]
-            cmd_pkt.byte[2] := val.byte[1]
-            nr_bytes := 3
-        other:
-            return
-
     pinw(_DC, CMD)
     pinl(_CS)
-    spi.wrblock_lsbf(@cmd_pkt, nr_bytes)
+    spi.wr_byte(reg_nr)
+    spi.wrblock_lsbf(ptr_buff, nr_bytes)
     pinh(_CS)
 #endif
 
