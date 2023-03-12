@@ -3,9 +3,9 @@
     Filename: display.oled.ssd130x.spin
     Description: Driver for Solomon Systech SSD130x OLED displays
     Author: Jesse Burt
-    Copyright (c) 2022
+    Copyright (c) 2023
     Created: Apr 26, 2018
-    Updated: Nov 5, 2022
+    Updated: Mar 12, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -382,19 +382,18 @@ PUB disp_start_line(line)
 ' Set Display Start Line
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
-    line := (0 #> line <# 63)
-    writereg(core#DISP_STLINE, 0, line)
+    command(core#DISP_STLINE + (0 #> line <# 63))
 
 PUB visibility(mode)
 ' Set display visibility
     case mode
         NORMAL:
-            writereg(core#RAMDISP_ON, 0, 0)
-            writereg(core#DISP_NORM, 0, 0)
+            command(core#RAMDISP_ON)
+            command(core#DISP_NORM)
         ALL_ON:
-            writereg(core#RAMDISP_ON, 0, 1)
+            command(core#RAMDISP_ON | 1)
         INVERTED:
-            writereg(core#DISP_NORM, 0, 1)
+            command(core#DISP_NORM | 1)
         other:
             return
 
@@ -403,8 +402,7 @@ PUB mirror_h(state)
 '   Valid values: TRUE (non-zero), *FALSE (0)
 '   Any other value is ignored
 '   NOTE: Takes effect only after next display update
-    state := ((state <> 0) & 1)
-    writereg(core#SEG_MAP0, 0, ((state <> 0) & 1))
+    command(core#SEG_MAP0 | ((state <> 0) & 1))
 
 PUB mirror_v(state)
 ' Mirror display, vertically
@@ -413,7 +411,7 @@ PUB mirror_v(state)
 '   NOTE: Takes effect only after next display update
     if (state)
         state := 8
-    writereg(core#COMDIR_NORM, 0, state)
+    command(core#COMDIR_NORM | state)
 
 PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
@@ -447,7 +445,7 @@ PUB point(x, y): pix_clr
 PUB powered(state) | tmp
 ' Enable display power
     state := (((state <> 0) & 1) + core#DISP_OFF)
-    writereg(state, 0, 0)
+    command(state)
 
 PUB precharge_period(phs1_clks, phs2_clks)
 ' Set display refresh pre-charge period, in display clocks
@@ -534,6 +532,23 @@ PUB wr_buffer(ptr_buff, buff_sz) | tmp
     outa[_CS] := 1
 #endif
 
+PRI command(c) | cmd_pkt
+' Issue a command with no parameters to the display
+#ifdef SSD130X_I2C
+    cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
+    cmd_pkt.byte[1] := core#CTRLBYTE_CMD
+    cmd_pkt.byte[2] := c
+
+    i2c.start{}
+    i2c.wrblock_lsbf(@cmd_pkt, 3)
+    i2c.stop{}
+#elseifdef SSD130X_SPI
+    outa[_DC] := CMD
+    outa[_CS] := 0
+    spi.wr_byte(c)
+    outa[_CS] := 1
+#endif
+
 #ifndef GFX_DIRECT
 PRI memfill(xs, ys, val, count)
 ' Fill region of display buffer memory
@@ -549,17 +564,14 @@ PRI writereg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
     cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
     cmd_pkt.byte[1] := core#CTRLBYTE_CMD
     case nr_bytes
-        0:
-            cmd_pkt.byte[2] := reg_nr | val 'Simple command
-            nr_bytes := 3
         1:
             cmd_pkt.byte[2] := reg_nr       'Command w/1-byte argument
             cmd_pkt.byte[3] := val
             nr_bytes := 4
         2:
             cmd_pkt.byte[2] := reg_nr       'Command w/2-byte argument
-            cmd_pkt.byte[3] := val & $FF
-            cmd_pkt.byte[4] := (val >> 8) & $FF
+            cmd_pkt.byte[3] := val.byte[0]
+            cmd_pkt.byte[4] := val.byte[1]
             nr_bytes := 5
         other:
             return
@@ -569,17 +581,14 @@ PRI writereg(reg_nr, nr_bytes, val) | cmd_pkt[2], tmp, ackbit
     i2c.stop{}
 #elseifdef SSD130X_SPI
     case nr_bytes
-        0:
-            cmd_pkt.byte[0] := reg_nr | val 'Simple command
-            nr_bytes := 1
         1:
             cmd_pkt.byte[0] := reg_nr       'Command w/1-byte argument
             cmd_pkt.byte[1] := val
             nr_bytes := 2
         2:
             cmd_pkt.byte[0] := reg_nr       'Command w/2-byte argument
-            cmd_pkt.byte[1] := val & $FF
-            cmd_pkt.byte[2] := (val >> 8) & $FF
+            cmd_pkt.byte[1] := val.byte[0]
+            cmd_pkt.byte[2] := val.byte[1]
             nr_bytes := 3
         other:
             return
