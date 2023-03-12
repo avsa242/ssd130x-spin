@@ -13,12 +13,13 @@ This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for the Solom
 (NOTE: Datasheet specifies max SPI clock of 10MHz. May function at higher bus speeds. __YMMV!__)
 * Supports 128x32 and 128x64 displays
 * Display mirroring (horizontal and vertical)
-* Inverted display
+* Display visibility modes: normal, inverted, all pixels on
 * Variable contrast
 * Low-level display control: Logic voltages, oscillator frequency, addressing mode, row/column mapping
 * Supports display modules with or without discrete RESET pin
 * Integration with the generic bitmap graphics library
-* Buffered display or direct-to-display drawing (*see limitations*)
+* Buffered display or direct-to-display drawing (*see 'Limitations' for direct-to-display*)
+* Hardware-accelerated scrolling (horizontal L/R, combined vertical and horizontal L/R)
 
 ## Requirements
 
@@ -37,11 +38,11 @@ P2/SPIN2:
 
 | Processor | Language | Compiler               | Backend     | Status                |
 |-----------|----------|------------------------|-------------|-----------------------|
-| P1        | SPIN1    | FlexSpin (5.9.14-beta) | Bytecode    | OK                    |
-| P1        | SPIN1    | FlexSpin (5.9.14-beta) | Native code | OK                    |
+| P1        | SPIN1    | FlexSpin (5.9.25-beta) | Bytecode    | OK                    |
+| P1        | SPIN1    | FlexSpin (5.9.25-beta) | Native code | OK                    |
 | P1        | SPIN1    | OpenSpin (1.00.81)     | Bytecode    | Untested (deprecated) |
-| P2        | SPIN2    | FlexSpin (5.9.14-beta) | NuCode      | Untested              |
-| P2        | SPIN2    | FlexSpin (5.9.14-beta) | Native code | OK                    |
+| P2        | SPIN2    | FlexSpin (5.9.25-beta) | NuCode      | Untested              |
+| P2        | SPIN2    | FlexSpin (5.9.25-beta) | Native code | OK                    |
 | P1        | SPIN1    | Brad's Spin Tool (any) | Bytecode    | Unsupported           |
 | P1, P2    | SPIN1, 2 | Propeller Tool (any)   | Bytecode    | Unsupported           |
 | P1, P2    | SPIN1, 2 | PNut (any)             | Bytecode    | Unsupported           |
@@ -54,6 +55,5 @@ P2/SPIN2:
 ## Limitations
 
 * Doesn't support parallel interface-connected displays (currently unplanned)
-* Doesn't support hardware-accelerated scrolling features
 * Unbuffered/Direct-draw operations are limited, due to the nature of serial 1bpp displays. Box(), Line(), Circle and Plot() aren't implemented.
 

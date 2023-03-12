@@ -467,6 +467,84 @@ PUB reset{}
         time.usleep(3)
         outa[_RES] := 1
 
+PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
+' Scroll a region of the display left, continuously
+'   (sx, sy): upper-left coordinates (sx: 0..127, sy: 0..63)
+'   (ex, ey): lower-right coordinates (ex: sx..127, ey: sy..63)
+'   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
+'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+    scroll_stop{}
+    cmd_pkt.byte[0] := 0                        ' dummy byte
+    cmd_pkt.byte[1] := ((0 #> sy <# 63) >> 3)   ' div coord by 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := ((sy #> ey <# 63) >> 3)
+    cmd_pkt.byte[4] := (0 #> sx <# 127)
+    cmd_pkt.byte[5] := (sx #> ex <# 127)        ' ex _must_ be >= sx
+    writereg(core#HSCROLL_L, 6, @cmd_pkt)
+    command(core#STARTSCROLL)
+
+PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
+' Scroll a region of the display left and up, continously
+'   (sy, ey): top and bottom of scroll region (0..63)
+'   vlines: vertical lines to scroll in each step (1..63)
+'   dly: inter-scroll step delay, in frames
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
+'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+    scroll_stop{}
+    cmd_pkt.byte[0] := 0
+    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[4] := (1 #> vlines <# 63)
+    writereg(core#SCROLL_VHL, 5, @cmd_pkt)
+    command(core#STARTSCROLL)
+
+PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
+' Scroll a region of the display right, continously
+'   (sx, sy): upper-left coordinates (sx: 0..127, sy: 0..63)
+'   (ex, ey): lower-right coordinates (ex: sx..127, ey: sy..63)
+'   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
+'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+    scroll_stop{}
+    cmd_pkt.byte[0] := 0
+    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[4] := (0 #> sx <# 127)
+    cmd_pkt.byte[5] := (sx #> ex <# 127)
+    writereg(core#HSCROLL_R, 6, @cmd_pkt)
+    command(core#STARTSCROLL)
+
+PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
+' Scroll a region of the display right and up, continously
+'   (sy, ey): top and bottom of scroll region (0..63)
+'   vlines: vertical lines to scroll in each step (1..63)
+'   dly: inter-scroll step delay, in frames
+'   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
+'   NOTE: ey must be greater than or equal to sy
+'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
+'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+    scroll_stop{}
+    cmd_pkt.byte[0] := 0
+    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[4] := (1 #> vlines <# 63)
+    writereg(core#SCROLL_VHR, 5, @cmd_pkt)
+    command(core#STARTSCROLL)
+
+PUB scroll_stop{}
+' Stop a running scroll command
+    command(core#STOPSCROLL)
+
 PUB show{} | tmp
 ' Write display buffer to display
     draw_area(0, 0, _disp_xmax, _disp_ymax)
@@ -581,7 +659,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
