@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Created: Apr 26, 2018
-    Updated: Mar 12, 2023
+    Updated: Mar 18, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -474,8 +474,7 @@ PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
 '   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
-'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
-'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop{}
     cmd_pkt.byte[0] := 0                        ' dummy byte
     cmd_pkt.byte[1] := ((0 #> sy <# 63) >> 3)   ' div coord by 8
@@ -493,8 +492,7 @@ PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
 '   dly: inter-scroll step delay, in frames
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
-'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
-'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop{}
     cmd_pkt.byte[0] := 0
     cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
@@ -511,8 +509,7 @@ PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
 '   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
-'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
-'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop{}
     cmd_pkt.byte[0] := 0
     cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
@@ -530,8 +527,7 @@ PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
 '   dly: inter-scroll step delay, in frames
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
-'   NOTE: scroll_enabled(true) must be called after calling this method, to start scrolling
-'   NOTE: scrolling is continuous, until stopped by calling scroll_enabled(false)
+'   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop{}
     cmd_pkt.byte[0] := 0
     cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
