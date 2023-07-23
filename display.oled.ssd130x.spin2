@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Created: Apr 26, 2018
-    Updated: Mar 18, 2023
+    Updated: Jul 23, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -24,7 +24,10 @@ CON
     SLAVE_WR        = core.SLAVE_ADDR
     SLAVE_RD        = core.SLAVE_ADDR|1
 
+    DEF_SCL         = 0
+    DEF_SDA         = 1
     DEF_HZ          = 100_000
+    DEF_ADDR        = 0
     MAX_COLOR       = 1
     BYTESPERPX      = 1
 
@@ -42,18 +45,38 @@ CON
     VERT            = 1
     PAGE            = 2
 
+    { default I/O settings; these can be overridden in the parent object }
+    { display dimensions }
+    WIDTH       = 128
+    HEIGHT      = 64
+
+    { I2C }
+    SCL         = DEF_SCL
+    SDA         = DEF_SDA
+    RST         = 0
+    I2C_FREQ    = DEF_HZ
+    I2C_ADDR    = DEF_ADDR
+
+    { SPI }
+    CS          = 0
+    SCK         = 1
+    MOSI        = 2
+    DC          = 3
+    RST         = 0
+    SPI_FREQ    = 10_000_000
+
 OBJ
 
     core: "core.con.ssd130x"
 
 #ifdef SSD130X_SPI
-    spi : "com.spi.25mhz"                             ' SPI engine (up to ~16MHz)
+    spi : "com.spi.25mhz"                       ' SPI engine
 
 #else
 
 { default to I2C }
 #define SSD130X_I2C
-    i2c : "com.i2c"                             ' I2C engine (~1MHz)
+    i2c : "com.i2c"                             ' I2C engine
 
 #endif
 
@@ -61,27 +84,32 @@ VAR
 
     long _CS, _DC, _RES
     byte _addr_bits
+    byte _fb[ (WIDTH*HEIGHT) / 8 ]
 
 PUB null()
 ' This is not a top-level object
 
 #ifdef SSD130X_I2C
-PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): status
+PUB start(): status
+' Start using default I/O settings
+    return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_fb)
+
+PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
 '   SCL_PIN: 0..63
 '   SDA_PIN: 0..63
 '   RES_PIN: 0..31 (optional; use -1 to disable)
 '   I2C_HZ: max official is 400_000 (unenforced, YMMV!)
 '   SLAVE_LSB: 0, 1
-'   WIDTH: 96, 128
-'   HEIGHT: 32, 64
-    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
-        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+'   DISP_WID: 96, 128
+'   DISP_HT: 32, 64
+    if ( lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) )
+        if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             waitus(core.TPOR)                   ' wait for device startup
             _addr_bits := abs(ADDR_BITS == 1) << 1 ' slave address bit option
             _RES := RES_PIN                     ' -1 to disable
             reset()
-            if i2c.present(SLAVE_WR | _addr_bits)  ' test device bus presence
+            if ( i2c.present(SLAVE_WR | _addr_bits) )  ' test device bus presence
                 _disp_width := width
                 _disp_height := height
                 _disp_xmax := _disp_width-1
@@ -97,6 +125,10 @@ PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_disp
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 #elseifdef SSD130X_SPI
+PUB start(): status
+' Start the driver using default I/O settings
+    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, @_fb)
+
 PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
 '   CS_PIN: 0..63
@@ -107,10 +139,9 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, SCK_HZ, WIDTH, HEIGHT, pt
 '   SCK_HZ: max official is 10_000_000 (YMMV!)
 '   WIDTH: 96, 128
 '   HEIGHT: 32, 64
-    if lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and {
-}   lookdown(SDIN_PIN: 0..63) and lookdown(DC_PIN: 0..63)
-        if (status := spi.init(SCK_PIN, SDIN_PIN, -1, core.SPI_MODE, {
-}       SCK_HZ))
+    if ( lookdown(CS_PIN: 0..63) and lookdown(SCK_PIN: 0..63) and lookdown(SDIN_PIN: 0..63) and ...
+        lookdown(DC_PIN: 0..63) )
+        if ( status := spi.init(SCK_PIN, SDIN_PIN, -1, core.SPI_MODE, SCK_HZ) )
             waitus(core.TPOR)                   ' wait for device startup
             _CS := CS_PIN
             _DC := DC_PIN

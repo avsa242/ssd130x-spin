@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Started: Mar 12, 2023
-    Updated: Mar 12, 2023
+    Updated: Jul 23, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -16,39 +16,18 @@ CON
 
 ' -- User-modifiable constants
     SER_BAUD    = 115_200
-
-    WIDTH       = 128
-    HEIGHT      = 32
-
-{ I2C configuration }
-    SCL_PIN     = 28
-    SDA_PIN     = 29
-    ADDR_BITS   = 0
-    SCL_FREQ    = 1_000_000
-
-{ SPI configuration }
-    CS_PIN      = 4
-    SCK_PIN     = 0
-    MOSI_PIN    = 1
-    DC_PIN      = 3
-
-    RES_PIN     = 2                             ' optional; -1 to disable
 ' --
-
-    BYTESPERLN  = WIDTH * disp#BYTESPERPX
-    BUFFSZ      = ((WIDTH * HEIGHT) * disp.BYTESPERPX) / 8
 
 OBJ
 
-    cfg:    "boardcfg.flip"
-    disp:   "display.oled.ssd130x"
-    ser:    "com.serial.terminal.ansi"
-    time:   "time"
-    fnt:    "font.5x8"
-
-VAR
-
-    byte _framebuff[BUFFSZ]                     ' display buffer
+    cfg: "boardcfg.flip"
+    disp:"display.oled.ssd130x" |   WIDTH=128, HEIGHT=64, ...
+                                    {I2C} SCL=28, SDA=29, I2C_ADDR=0, I2C_FREQ=1_000_000, ...
+                                    {SPI} CS=0, SCK=1, MOSI=2, DC=3, RST=4
+                                    ' (set RST=-1 to disable (reccommend tying to propeller RESET)
+    ser: "com.serial.terminal.ansi"
+    time:"time"
+    fnt: "font.5x8"
 
 PUB main{} | y
 
@@ -98,12 +77,7 @@ PUB setup{}
     ser.clear{}
     ser.strln(string("Serial terminal started"))
 
-#ifdef SSD130X_SPI
-    if disp.startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, @_framebuff)
-#else
-#define SSD130X_I2C
-    if disp.startx(SCL_PIN, SDA_PIN, RES_PIN, SCL_FREQ, ADDR_BITS, WIDTH, HEIGHT, @_framebuff)
-#endif
+    if ( disp.start() )
         ser.strln(string("SSD130X driver started"))
         disp.font_spacing(1, 0)
         disp.font_scl(1)
@@ -119,6 +93,7 @@ PUB setup{}
     disp.clear{}
     disp.fgcolor(1)
 
+DAT
 {
 Copyright 2023 Jesse Burt
 

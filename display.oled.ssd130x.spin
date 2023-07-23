@@ -5,7 +5,7 @@
     Author: Jesse Burt
     Copyright (c) 2023
     Created: Apr 26, 2018
-    Updated: Mar 18, 2023
+    Updated: Jul 23, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,26 +21,48 @@
 #endif
 CON
 
-    SLAVE_WR        = core#SLAVE_ADDR
-    SLAVE_RD        = core#SLAVE_ADDR|1
+    SLAVE_WR    = core#SLAVE_ADDR
+    SLAVE_RD    = core#SLAVE_ADDR|1
 
-    DEF_HZ          = 100_000
-    MAX_COLOR       = 1
-    BYTESPERPX      = 1
+    DEF_SCL     = 28
+    DEF_SDA     = 29
+    DEF_HZ      = 100_000
+    DEF_ADDR    = 0
+    MAX_COLOR   = 1
+    BYTESPERPX  = 1
 
 ' States for D/C pin
-    DATA            = 1
-    CMD             = 0
+    DATA        = 1
+    CMD         = 0
 
 ' Display visibility modes
-    NORMAL          = 0
-    ALL_ON          = 1
-    INVERTED        = 2
+    NORMAL      = 0
+    ALL_ON      = 1
+    INVERTED    = 2
 
 ' Addressing modes
-    HORIZ           = 0
-    VERT            = 1
-    PAGE            = 2
+    HORIZ       = 0
+    VERT        = 1
+    PAGE        = 2
+
+    { default I/O settings; these can be overridden in the parent object }
+    { display dimensions }
+    WIDTH       = 128
+    HEIGHT      = 64
+
+    { I2C }
+    SCL         = DEF_SCL
+    SDA         = DEF_SDA
+    RST         = 0
+    I2C_FREQ    = DEF_HZ
+    I2C_ADDR    = DEF_ADDR
+
+    { SPI }
+    CS          = 0
+    SCK         = 1
+    MOSI        = 2
+    DC          = 3
+    RST         = 0
 
 OBJ
 
@@ -62,29 +84,34 @@ VAR
 
     long _CS, _DC, _RES
     byte _addr_bits
+    byte _fb[ (WIDTH*HEIGHT) / 8 ]
 
 PUB null{}
 ' This is not a top-level object
 
 #ifdef SSD130X_I2C
-PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_dispbuff): status
+PUB start{}: status
+' Start using default I/O settings
+    return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_fb)
+
+PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
 '   SCL_PIN: 0..31
 '   SDA_PIN: 0..31
 '   RES_PIN: 0..31 (optional; use -1 to disable)
 '   I2C_HZ: max official is 400_000 (unenforced, YMMV!)
 '   SLAVE_LSB: 0, 1
-'   WIDTH: 96, 128
-'   HEIGHT: 32, 64
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
-        if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+'   DISP_WID: 96, 128
+'   DISP_HT: 32, 64
+    if ( lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) )
+        if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             time.usleep(core#TPOR)              ' wait for device startup
             _addr_bits := ||(ADDR_BITS == 1) << 1 ' slave address bit option
             _RES := RES_PIN                     ' -1 to disable
             reset{}
-            if i2c.present(SLAVE_WR | _addr_bits) ' test device bus presence
-                _disp_width := width
-                _disp_height := height
+            if ( i2c.present(SLAVE_WR | _addr_bits) ) ' test device bus presence
+                _disp_width := DISP_WID
+                _disp_height := DISP_HT
                 _disp_xmax := _disp_width-1
                 _disp_ymax := _disp_height-1
                 ' calc display memory usage from dimensions and 1bpp depth
@@ -98,7 +125,11 @@ PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, WIDTH, HEIGHT, ptr_disp
     ' Lastly - make sure you have at least one free core/cog
     return FALSE
 #elseifdef SSD130X_SPI
-PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, ptr_dispbuff): status
+PUB start{}: status
+' Start the driver using default I/O settings
+    return startx(CS, SCK, MOSI, DC, RST, WIDTH, HEIGHT, @_fb)
+
+PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
 '   CS_PIN: 0..31
 '   SCK_PIN: 0..31
@@ -107,9 +138,9 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, ptr_dispbu
 '   RES_PIN: 0..31 (optional; use -1 to disable)
 '   WIDTH: 96, 128
 '   HEIGHT: 32, 64
-    if lookdown(CS_PIN: 0..31) and lookdown(SCK_PIN: 0..31) and {
-}   lookdown(SDIN_PIN: 0..31) and lookdown(DC_PIN: 0..31)
-        if (status := spi.init(SCK_PIN, SDIN_PIN, SDIN_PIN, core#SPI_MODE))
+    if ( lookdown(CS_PIN: 0..31) and lookdown(SCK_PIN: 0..31) and lookdown(SDIN_PIN: 0..31) and ...
+        lookdown(DC_PIN: 0..31) )
+        if ( status := spi.init(SCK_PIN, SDIN_PIN, -1, core#SPI_MODE) )
             time.usleep(core#TPOR)              ' wait for device startup
             _CS := CS_PIN
             _DC := DC_PIN
@@ -120,8 +151,8 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, WIDTH, HEIGHT, ptr_dispbu
             dira[_CS] := 1
             outa[_DC] := 0
             dira[_DC] := 1
-            _disp_width := WIDTH
-            _disp_height := HEIGHT
+            _disp_width := DISP_WID
+            _disp_height := DISP_HT
             _disp_xmax := _disp_width-1
             _disp_ymax := _disp_height-1
             ' calc display memory usage from dimensions and 1bpp depth
