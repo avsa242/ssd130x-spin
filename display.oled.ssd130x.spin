@@ -84,7 +84,7 @@ VAR
 
     long _CS, _DC, _RES
     byte _addr_bits
-    byte _fb[ (WIDTH*HEIGHT) / 8 ]
+    byte _framebuffer[ (WIDTH*HEIGHT) / 8 ]
 
 PUB null{}
 ' This is not a top-level object
@@ -92,7 +92,7 @@ PUB null{}
 #ifdef SSD130X_I2C
 PUB start{}: status
 ' Start using default I/O settings
-    return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_fb)
+    return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_framebuffer)
 
 PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
