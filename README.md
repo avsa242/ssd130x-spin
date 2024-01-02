@@ -26,26 +26,24 @@ This is a P8X32A/Propeller 1, P2X8C4M64P/Propeller 2 driver object for the Solom
 
 P1/SPIN1:
 * spin-standard-library
-* P1/SPIN1: 1 extra core/cog for the PASM I2C engine
-
-_or_
-
-* P1/SPIN1: 1 extra core/cog for the PASM SPI engine
+* P1/SPIN1: 1 extra core/cog for the PASM I2C or SPI engine, as applicable
 * graphics.common.spinh (provided by spin-standard-library)
+* `(WIDTH * HEIGHT) / 8` bytes of RAM for the display, if buffered mode is used (default)
 
 P2/SPIN2:
 * p2-spin-standard-library
 * graphics.common.spin2h (provided by p2-spin-standard-library)
+* `(WIDTH * HEIGHT) / 8` bytes of RAM for the display, if buffered mode is used (default)
 
 
 ## Compiler Compatibility
 
 | Processor | Language | Compiler               | Backend      | Status                |
 |-----------|----------|------------------------|--------------|-----------------------|
-| P1        | SPIN1    | FlexSpin (6.2.1)       | Bytecode     | OK                    |
-| P1        | SPIN1    | FlexSpin (6.2.1)       | Native/PASM  | OK                    |
-| P2        | SPIN2    | FlexSpin (6.2.1)       | NuCode       | FTBFS                 |
-| P2        | SPIN2    | FlexSpin (6.2.1)       | Native/PASM2 | OK                    |
+| P1        | SPIN1    | FlexSpin (6.8.0)       | Bytecode     | OK                    |
+| P1        | SPIN1    | FlexSpin (6.8.0)       | Native/PASM  | OK                    |
+| P2        | SPIN2    | FlexSpin (6.8.0)       | NuCode       | OK (Untested)         |
+| P2        | SPIN2    | FlexSpin (6.8.0)       | Native/PASM2 | OK                    |
 
 (other versions or toolchains not listed are __not supported__, and _may or may not_ work)
 
