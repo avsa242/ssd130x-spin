@@ -69,6 +69,12 @@ CON
     RST         = 0
     SPI_FREQ    = 10_000_000
 
+    BPP         = 1                             ' bits per pixel/color depth of the display
+    BYTESPERPX  = 1 #> (BPP/8)                  ' limit to minimum of 1
+    BPPDIV      = BYTESPERPX #> (8 / BPP)       ' limit to range BYTESPERPX .. (8/BPP)
+    BUFF_SZ     = (WIDTH * HEIGHT) / BPPDIV
+    MAX_COLOR   = (1 << BPP)-1
+
 OBJ
 
     core: "core.con.ssd130x"
@@ -88,7 +94,7 @@ VAR
 
     long _CS, _DC, _RES
     byte _addr_bits
-    byte _framebuffer[ (WIDTH*HEIGHT) / 8 ]
+    byte _framebuffer[BUFF_SZ]
 
 PUB null()
 ' This is not a top-level object
