@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: SSD130X-MinimalDemo.spin
-    Description: Graphics demo using minimal code
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started: May 28, 2022
-    Updated: Jan 2, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       SSD130X-MinimalDemo.spin
+    Description:    Graphics demo using minimal code
+    Author:         Jesse Burt
+    Started:        May 28, 2022
+    Updated:        Aug 13, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkmode    = xtal1 + pll16x
@@ -30,7 +30,7 @@ PUB main()
 '#define SSD130X_SPI                             { SPI-connected displays }
 '#pragma exportdef(SSD130X_SPI)
 
-'#define SSD1309                                { SSD1309 models only }
+'#define SSD1309                                 { SSD1309 models only }
 '#pragma exportdef(SSD1309)
 
     disp.start()
@@ -60,6 +60,7 @@ PUB main()
     disp.show()
 
     repeat
+
 
 DAT
 {

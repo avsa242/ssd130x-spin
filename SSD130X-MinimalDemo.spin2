@@ -1,14 +1,14 @@
 {
-    --------------------------------------------
-    Filename: SSD130X-MinimalDemo.spin2
-    Description: Graphics demo using minimal code (P2 version)
-    Author: Jesse Burt
-    Copyright (c) 2024
-    Started: May 28, 2022
-    Updated: Jan 2, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       SSD130X-MinimalDemo.spin2
+    Description:    Graphics demo using minimal code
+    Author:         Jesse Burt
+    Started:        May 28, 2022
+    Updated:        Aug 13, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
 CON
 
     _clkfreq    = 180_000_000
@@ -19,7 +19,7 @@ OBJ
 
     fnt:    "font.5x8"
     disp:   "display.oled.ssd130x" | WIDTH=128, HEIGHT=64, ...
-                                    {I2C} SCL=28, SDA=29, I2C_ADDR=0, I2C_FREQ=400_000, ...
+                                    {I2C} SCL=1, SDA=2, I2C_ADDR=0, I2C_FREQ=400_000, ...
                                     {SPI} CS=0, SCK=1, MOSI=2, DC=3, RST=4, SPI_FREQ=10_000_000
 
 
@@ -30,7 +30,7 @@ PUB main()
 '#define SSD130X_SPI                             { SPI-connected displays }
 '#pragma exportdef(SSD130X_SPI)
 
-'#define SSD1309                                { SSD1309 models only }
+'#define SSD1309                                 { SSD1309 models only }
 '#pragma exportdef(SSD1309)
 
     disp.start()
@@ -60,6 +60,7 @@ PUB main()
     disp.show()
 
     repeat
+
 
 DAT
 {

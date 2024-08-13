@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       display.oled.ssd130x.spin2
     Description:    Driver for Solomon Systech SSD130x OLED displays
     Author:         Jesse Burt
     Started:        Apr 26, 2018
-    Updated:        Jan 27, 2024
+    Updated:        Aug 13, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 }
 
 #define 1BPP
@@ -538,7 +538,7 @@ PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
     command(core.STARTSCROLL)
 
 PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
-' Scroll a region of the display left and up, continously
+' Scroll a region of the display left and up, continuously
 '   (sy, ey): top and bottom of scroll region (0..63)
 '   vlines: vertical lines to scroll in each step (1..63)
 '   dly: inter-scroll step delay, in frames
@@ -555,7 +555,7 @@ PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
     command(core.STARTSCROLL)
 
 PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
-' Scroll a region of the display right, continously
+' Scroll a region of the display right, continuously
 '   (sx, sy): upper-left coordinates (sx: 0..127, sy: 0..63)
 '   (ex, ey): lower-right coordinates (ex: sx..127, ey: sy..63)
 '   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
@@ -573,7 +573,7 @@ PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
     command(core.STARTSCROLL)
 
 PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
-' Scroll a region of the display right and up, continously
+' Scroll a region of the display right and up, continuously
 '   (sy, ey): top and bottom of scroll region (0..63)
 '   vlines: vertical lines to scroll in each step (1..63)
 '   dly: inter-scroll step delay, in frames

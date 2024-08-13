@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       SSD130X-HWScrollDemo.spin
     Description:    SSD130X Hardware-accelerated scrolling demo
     Author:         Jesse Burt
     Started:        Mar 12, 2023
     Updated:        Jan 22, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 }
 
 { uncomment these if your display is an SSD1309 }
@@ -19,8 +19,8 @@
 
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkmode    = cfg._clkmode
+    _xinfreq    = cfg._xinfreq
 
 
 OBJ
@@ -29,7 +29,7 @@ OBJ
     disp:   "display.oled.ssd130x" | WIDTH=128, HEIGHT=64, ...
                                     {I2C} SCL=28, SDA=29, I2C_ADDR=0, I2C_FREQ=1_000_000, ...
                                     {SPI} CS=0, SCK=1, MOSI=2, DC=3, RST=4
-                                    ' (set RST=-1 to disable (reccommend tying to propeller RESET)
+                                    ' (set RST=-1 to disable (recommend tying to propeller RESET)
     ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
     time:   "time"
     fnt:    "font.5x8"
@@ -77,25 +77,27 @@ PUB main() | y
     disp.scroll_stop()
     repeat
 
+
 PUB setup()
 
     ser.start()
     time.msleep(30)
     ser.clear()
-    ser.strln(string("Serial terminal started"))
+    ser.strln(@"Serial terminal started")
 
     if ( disp.start() )
-        ser.strln(string("SSD130X driver started"))
+        ser.strln(@"SSD130X driver started")
         disp.set_font(fnt.ptr(), fnt.setup())
         disp.preset_128x()
     else
-        ser.strln(string("SSD130X driver failed to start - halting"))
+        ser.strln(@"SSD130X driver failed to start - halting")
         repeat
 
     disp.mirror_h(FALSE)
     disp.mirror_v(FALSE)
     disp.clear()
     disp.fgcolor(1)
+
 
 DAT
 {
