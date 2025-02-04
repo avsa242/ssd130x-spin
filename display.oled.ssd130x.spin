@@ -267,7 +267,7 @@ PUB addr_mode(mode)
 '   Any other value is ignored
     case mode
         HORIZ, VERT, PAGE:
-            writereg(core.MEM_ADDRMODE, 1, @mode)
+            writereg(core.MEM_ADDRMODE, mode)
         other:
             return
 
@@ -345,7 +345,7 @@ PUB chg_pump_voltage(v)
         other:
             return
 
-    writereg(core.CHGPUMP, 1, @v)
+    writereg(core.CHGPUMP, v)
 #endif
 
 
@@ -390,7 +390,7 @@ PUB clk_freq(freq)
 #elseifdef SSD1309
             freq := ((freq / 12) - 30) << core.OSCFREQ
 #endif
-            writereg(core.SETOSCFREQ, 1, @freq)
+            writereg(core.SETOSCFREQ, freq)
         other:
             return
 
@@ -412,14 +412,14 @@ PUB com_pin_cfg(pin_config, remap) | config
             config := config | (1 << 5)
         other:
 
-    writereg(core.SETCOM_CFG, 1, @config)
+    writereg(core.SETCOM_CFG, config)
 
 
 PUB contrast(level)
 ' Set Contrast Level
 '   Valid values: 0..255 (clamped to range)
     level := (0 #> level <# 255)
-    writereg(core.CONTRAST, 1, @level)
+    writereg(core.CONTRAST, level)
 
 
 PUB draw_area(sx, sy, ex, ey) | tmp
@@ -430,9 +430,9 @@ PUB draw_area(sx, sy, ex, ey) | tmp
     sy >>= 3                                    ' convert y-coordinates to
     ey >>= 3                                    '   page numbers
     tmp := (ex << 8) | sx
-    writereg(core.SET_COLADDR, 2, @tmp)
+    writereg(core.SET_COLADDR, tmp, 2)
     tmp := (ey << 8) | sy
-    writereg(core.SET_PAGEADDR, 2, @tmp)
+    writereg(core.SET_PAGEADDR, tmp, 2)
 
 
 PUB invert_colors(state) | tmp
@@ -449,7 +449,7 @@ PUB disp_lines(lines)
 '   Typical values: 32, 64
 '   Any other value is ignored
     lines := ((16 #> lines <# 64) - 1)
-    writereg(core.SETMUXRATIO, 1, @lines)
+    writereg(core.SETMUXRATIO, lines)
 
 
 PUB disp_offset(offset)
@@ -457,7 +457,7 @@ PUB disp_offset(offset)
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
     offset := (0 #> offset <# 63)
-    writereg(core.SETDISPOFFS, 1, @offset)
+    writereg(core.SETDISPOFFS, offset)
 
 
 PUB disp_start_line(line)
@@ -542,7 +542,7 @@ PUB precharge_period(phs1_clks, phs2_clks) | tmp
     phs1_clks := (1 #> phs1_clks <# 15)
     phs2_clks := (1 #> phs2_clks <# 15)
     tmp := (phs2_clks << 4) | phs1_clks
-    writereg(core.SETPRECHARGE, 1, @tmp)
+    writereg(core.SETPRECHARGE, tmp)
 
 
 PUB reset()
@@ -571,7 +571,7 @@ PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
     cmd_pkt.byte[3] := ((sy #> ey <# 63) >> 3)
     cmd_pkt.byte[4] := (0 #> sx <# 127)
     cmd_pkt.byte[5] := (sx #> ex <# 127)        ' ex _must_ be >= sx
-    writereg(core.HSCROLL_L, 6, @cmd_pkt)
+    writereg(core.HSCROLL_L, @cmd_pkt, 6)
     command(core.STARTSCROLL)
 
 
@@ -589,7 +589,7 @@ PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
     cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
     cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
     cmd_pkt.byte[4] := (1 #> vlines <# 63)
-    writereg(core.SCROLL_VHL, 5, @cmd_pkt)
+    writereg(core.SCROLL_VHL, @cmd_pkt, 5)
     command(core.STARTSCROLL)
 
 
@@ -608,7 +608,7 @@ PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
     cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
     cmd_pkt.byte[4] := (0 #> sx <# 127)
     cmd_pkt.byte[5] := (sx #> ex <# 127)
-    writereg(core.HSCROLL_R, 6, @cmd_pkt)
+    writereg(core.HSCROLL_R, @cmd_pkt, 6)
     command(core.STARTSCROLL)
 
 
@@ -626,7 +626,7 @@ PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
     cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
     cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
     cmd_pkt.byte[4] := (1 #> vlines <# 63)
-    writereg(core.SCROLL_VHR, 5, @cmd_pkt)
+    writereg(core.SCROLL_VHR, @cmd_pkt, 5)
     command(core.STARTSCROLL)
 
 
@@ -686,7 +686,7 @@ PUB vcomh_voltage(level)
         other:
             return
 
-    writereg(core.SETVCOMDESEL, 1, @level)
+    writereg(core.SETVCOMDESEL, @level)
 
 
 PUB wr_buffer(ptr_buff, len)
@@ -736,7 +736,7 @@ PRI memfill(xs, ys, val, count)
 #endif
 
 
-PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
+PRI writereg(reg_nr, val, len=1) | cmd_pkt
 ' Write nr_bytes from val to device
 #ifdef SSD130X_I2C
     cmd_pkt.byte[0] := SLAVE_WR | _addr_bits
@@ -744,13 +744,19 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
     cmd_pkt.byte[2] := reg_nr
     i2c.start()
     i2c.wrblock_lsbf(@cmd_pkt, 3)
-    i2c.wrblock_lsbf(ptr_buff, nr_bytes)
+    if ( len =< 4 )
+        i2c.wrblock_lsbf(@val, len)             ' get values directly
+    else
+        i2c.wrblock_lsbf(val,  len)             ' get values pointed to
     i2c.stop()
 #elseifdef SSD130X_SPI
     outa[_DC] := CMD
     outa[_CS] := 0
     spi.wr_byte(reg_nr)
-    spi.wrblock_lsbf(ptr_buff, nr_bytes)
+    if ( len =< 4 )
+        spi.wrblock_lsbf(@val, len)
+    else
+        spi.wrblock_lsbf(val, len)
     outa[_CS] := 1
 #endif
 
