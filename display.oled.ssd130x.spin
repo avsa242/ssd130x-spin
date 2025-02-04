@@ -4,8 +4,8 @@
     Description:    Driver for Solomon Systech SSD130x OLED displays
     Author:         Jesse Burt
     Started:        Apr 26, 2018
-    Updated:        Aug 13, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Feb 4, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -75,6 +75,7 @@ CON
     VERT        = 1
     PAGE        = 2
 
+
 OBJ
 
     core:   "core.con.ssd130x"
@@ -91,29 +92,33 @@ OBJ
 
 #endif
 
+
 VAR
 
     long _CS, _DC, _RES
     byte _addr_bits
     byte _framebuffer[BUFF_SZ]
 
+
 PUB null()
 ' This is not a top-level object
+
 
 #ifdef SSD130X_I2C
 PUB start(): status
 ' Start using default I/O settings
     return startx(SCL, SDA, RST, I2C_FREQ, I2C_ADDR, WIDTH, HEIGHT, @_framebuffer)
 
+
 PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
-'   SCL_PIN: 0..31
-'   SDA_PIN: 0..31
-'   RES_PIN: 0..31 (optional; use -1 to disable)
-'   I2C_HZ: max official is 400_000 (unenforced, YMMV!)
-'   SLAVE_LSB: 0, 1
-'   DISP_WID: 96, 128
-'   DISP_HT: 32, 64
+'   SCL_PIN:    I2C serial clock pin, 0..31
+'   SDA_PIN:    I2C serial data pin, 0..31
+'   RES_PIN:    display reset pin, 0..31 (optional; use -1 to disable)
+'   I2C_HZ:     I2C bus speed; max official is 400_000 (unenforced, YMMV!)
+'   ADDR_BITS:  I2C address option, 0..1
+'   DISP_WID:   display width in pixels
+'   DISP_HT:    display height in pixels
     if ( lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) )
         if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             time.usleep(core.TPOR)              ' wait for device startup
@@ -142,18 +147,19 @@ PUB start(): status
 ' Start the driver using default I/O settings
     return startx(CS, SCK, MOSI, DC, RST, WIDTH, HEIGHT, @_framebuffer)
 
-PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_dispbuff): status
+
+PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_dispbuff): status
 ' Start the driver with custom I/O settings
-'   CS_PIN: 0..31
-'   SCK_PIN: 0..31
-'   SDIN_PIN: 0..31
-'   DC_PIN: 0..31
-'   RES_PIN: 0..31 (optional; use -1 to disable)
-'   WIDTH: 96, 128
-'   HEIGHT: 32, 64
-    if ( lookdown(CS_PIN: 0..31) and lookdown(SCK_PIN: 0..31) and lookdown(SDIN_PIN: 0..31) and ...
+'   CS_PIN:     SPI chip select pin, 0..31
+'   SCK_PIN:    SPI serial clock pin, 0..31
+'   MOSI_PIN:   SPI master-out slave-in pin, 0..31
+'   DC_PIN:     display data/command pin, 0..31
+'   RES_PIN:    display reset pin, 0..31 (optional; use -1 to disable)
+'   WIDTH:      display width in pixels
+'   HEIGHT:     display height in pixels
+    if ( lookdown(CS_PIN: 0..31) and lookdown(SCK_PIN: 0..31) and lookdown(MOSI_PIN: 0..31) and ...
         lookdown(DC_PIN: 0..31) )
-        if ( status := spi.init(SCK_PIN, SDIN_PIN, -1, core.SPI_MODE) )
+        if ( status := spi.init(SCK_PIN, MOSI_PIN, -1, core.SPI_MODE) )
             time.usleep(core.TPOR)              ' wait for device startup
             _CS := CS_PIN
             _DC := DC_PIN
@@ -182,6 +188,7 @@ PUB startx(CS_PIN, SCK_PIN, SDIN_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_di
     return FALSE
 #endif
 
+
 PUB stop()
 ' Stop the driver
     powered(FALSE)
@@ -190,6 +197,7 @@ PUB stop()
 #elseifdef SSD130X_SPI
     spi.deinit()
 #endif
+
 
 PUB defaults()
 ' Apply power-on-reset default settings
@@ -210,6 +218,7 @@ PUB defaults()
     reset()
 #endif
 
+
 PUB preset_128x()
 ' Preset: 128px wide, determine settings for height at runtime
     disp_lines(_disp_height)
@@ -226,6 +235,7 @@ PUB preset_128x()
             com_pin_cfg(0, 0)
     powered(TRUE)
 
+
 PUB preset_128x32()
 ' Preset: 128px wide, setup for 32px height
     disp_lines(32)
@@ -236,6 +246,7 @@ PUB preset_128x32()
     com_pin_cfg(0, 0)
     powered(TRUE)
 
+
 PUB preset_128x64()
 ' Preset: 128px wide, setup for 64px height
     disp_lines(64)
@@ -245,6 +256,7 @@ PUB preset_128x64()
     visibility(NORMAL)
     com_pin_cfg(1, 0)
     powered(TRUE)
+
 
 PUB addr_mode(mode)
 ' Set Memory Addressing Mode
@@ -259,6 +271,7 @@ PUB addr_mode(mode)
         other:
             return
 
+
 #ifdef GFX_DIRECT
 PUB bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
 ' Display bitmap
@@ -271,9 +284,11 @@ PUB bitmap(ptr_bmap, sx, sy, ex, ey) | bm_sz
     wr_buffer(ptr_bmap, bm_sz)
 #endif
 
+
 #ifdef GFX_DIRECT
 PUB box(sx, sy, ex, ey, c, f)
 #endif
+
 
 #ifdef GFX_DIRECT
 
@@ -306,6 +321,7 @@ PUB putchar_90deg_1bpp(ch) | ch_offs
             _charpx_x := _charpx_y := 0         ' wrap to beginning of disp
 #endif
 
+
 PUB chg_pump_voltage(v)
 ' Set charge pump regulator voltage, in millivolts
 '   Valid values:
@@ -332,26 +348,28 @@ PUB chg_pump_voltage(v)
     writereg(core.CHGPUMP, 1, @v)
 #endif
 
+
 PUB clear()
 ' Clear the display
 #ifdef GFX_DIRECT
-#ifdef SSD130X_I2C
+# ifdef SSD130X_I2C
     i2c.start
     i2c.write(SLAVE_WR | _addr_bits)
     i2c.wr_byte(core.CTRLBYTE_DATA)
     repeat _buff_sz
         i2c.wr_byte(_bgcolor)
     i2c.stop
-#elseifdef SSD130X_SPI
+# elseifdef SSD130X_SPI
     outa[_DC] := DATA
     outa[_CS] := 0
     repeat _buff_sz
         spi.wr_byte(_bgcolor)
     outa[_CS] := 1
-#endif
+# endif
 #else
     bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #endif
+
 
 PUB clk_freq(freq)
 ' Set display internal oscillator frequency, in kHz
@@ -376,6 +394,7 @@ PUB clk_freq(freq)
         other:
             return
 
+
 PUB com_pin_cfg(pin_config, remap) | config
 ' Set COM Pins Hardware Configuration and Left/Right Remap
 '   Valid values:
@@ -395,11 +414,13 @@ PUB com_pin_cfg(pin_config, remap) | config
 
     writereg(core.SETCOM_CFG, 1, @config)
 
+
 PUB contrast(level)
 ' Set Contrast Level
 '   Valid values: 0..255 (clamped to range)
     level := (0 #> level <# 255)
     writereg(core.CONTRAST, 1, @level)
+
 
 PUB draw_area(sx, sy, ex, ey) | tmp
 ' Set displayable area
@@ -413,12 +434,14 @@ PUB draw_area(sx, sy, ex, ey) | tmp
     tmp := (ey << 8) | sy
     writereg(core.SET_PAGEADDR, 2, @tmp)
 
+
 PUB invert_colors(state) | tmp
 ' Invert display colors
     if (state)
         visibility(INVERTED)
     else
         visibility(NORMAL)
+
 
 PUB disp_lines(lines)
 ' Set total number of display lines
@@ -428,6 +451,7 @@ PUB disp_lines(lines)
     lines := ((16 #> lines <# 64) - 1)
     writereg(core.SETMUXRATIO, 1, @lines)
 
+
 PUB disp_offset(offset)
 ' Set display offset/vertical shift
 '   Valid values: 0..63 (default: 0)
@@ -435,11 +459,13 @@ PUB disp_offset(offset)
     offset := (0 #> offset <# 63)
     writereg(core.SETDISPOFFS, 1, @offset)
 
+
 PUB disp_start_line(line)
 ' Set Display Start Line
 '   Valid values: 0..63 (default: 0)
 '   Any other value sets the default value
     command(core.DISP_STLINE + (0 #> line <# 63))
+
 
 PUB visibility(mode)
 ' Set display visibility
@@ -454,12 +480,14 @@ PUB visibility(mode)
         other:
             return
 
+
 PUB mirror_h(state)
 ' Mirror display, horizontally
 '   Valid values: TRUE (non-zero), *FALSE (0)
 '   Any other value is ignored
 '   NOTE: Takes effect only after next display update
     command(core.SEG_MAP0 | ((state <> 0) & 1))
+
 
 PUB mirror_v(state)
 ' Mirror display, vertically
@@ -469,6 +497,7 @@ PUB mirror_v(state)
     if (state)
         state := 8
     command(core.COMDIR_NORM | state)
+
 
 PUB plot(x, y, color)
 ' Plot pixel at (x, y) in color
@@ -490,6 +519,7 @@ PUB plot(x, y, color)
             return
 #endif
 
+
 #ifndef GFX_DIRECT
 PUB point(x, y): pix_clr
 ' Get color of pixel at x, y
@@ -499,10 +529,12 @@ PUB point(x, y): pix_clr
     return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
 #endif
 
+
 PUB powered(state) | tmp
 ' Enable display power
     state := (((state <> 0) & 1) + core.DISP_OFF)
     command(state)
+
 
 PUB precharge_period(phs1_clks, phs2_clks) | tmp
 ' Set display refresh pre-charge period, in display clocks
@@ -511,6 +543,7 @@ PUB precharge_period(phs1_clks, phs2_clks) | tmp
     phs2_clks := (1 #> phs2_clks <# 15)
     tmp := (phs2_clks << 4) | phs1_clks
     writereg(core.SETPRECHARGE, 1, @tmp)
+
 
 PUB reset()
 ' Reset the display controller
@@ -521,6 +554,7 @@ PUB reset()
         outa[_RES] := 0
         time.usleep(3)
         outa[_RES] := 1
+
 
 PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
 ' Scroll a region of the display left, continuously
@@ -540,6 +574,7 @@ PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
     writereg(core.HSCROLL_L, 6, @cmd_pkt)
     command(core.STARTSCROLL)
 
+
 PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
 ' Scroll a region of the display left and up, continuously
 '   (sy, ey): top and bottom of scroll region (0..63)
@@ -556,6 +591,7 @@ PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
     cmd_pkt.byte[4] := (1 #> vlines <# 63)
     writereg(core.SCROLL_VHL, 5, @cmd_pkt)
     command(core.STARTSCROLL)
+
 
 PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
 ' Scroll a region of the display right, continuously
@@ -575,6 +611,7 @@ PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
     writereg(core.HSCROLL_R, 6, @cmd_pkt)
     command(core.STARTSCROLL)
 
+
 PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
 ' Scroll a region of the display right and up, continuously
 '   (sy, ey): top and bottom of scroll region (0..63)
@@ -592,26 +629,31 @@ PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
     writereg(core.SCROLL_VHR, 5, @cmd_pkt)
     command(core.STARTSCROLL)
 
+
 PUB scroll_stop()
 ' Stop a running scroll command
     command(core.STOPSCROLL)
 
+
 PUB show() | tmp
 ' Write display buffer to display
+#ifndef GFX_DIRECT
     draw_area(0, 0, _disp_xmax, _disp_ymax)
 
-#ifdef SSD130X_I2C
+# ifdef SSD130X_I2C
     i2c.start()
     i2c.wr_byte(SLAVE_WR | _addr_bits)
     i2c.wr_byte(core.CTRLBYTE_DATA)
     i2c.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     i2c.stop()
-#elseifdef SSD130X_SPI
+# elseifdef SSD130X_SPI
     outa[_DC] := DATA
     outa[_CS] := 0
     spi.wrblock_lsbf(_ptr_drawbuffer, _buff_sz)
     outa[_CS] := 1
+# endif
 #endif
+
 
 PUB vcomh_voltage(level)
 ' Set COM output voltage, in millivolts
@@ -646,6 +688,7 @@ PUB vcomh_voltage(level)
 
     writereg(core.SETVCOMDESEL, 1, @level)
 
+
 PUB wr_buffer(ptr_buff, len)
 ' Write alternate buffer to display
 '   ptr_buff: address of buffer to write to display
@@ -664,6 +707,7 @@ PUB wr_buffer(ptr_buff, len)
     outa[_CS] := 1
 #endif
 
+
 PRI command(c) | cmd_pkt
 ' Issue a command with no parameters to the display
 #ifdef SSD130X_I2C
@@ -681,6 +725,7 @@ PRI command(c) | cmd_pkt
     outa[_CS] := 1
 #endif
 
+
 #ifndef GFX_DIRECT
 PRI memfill(xs, ys, val, count)
 ' Fill region of display buffer memory
@@ -689,6 +734,7 @@ PRI memfill(xs, ys, val, count)
 '   count: Number of consecutive memory locations to write
     bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
 #endif
+
 
 PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
 ' Write nr_bytes from val to device
@@ -710,7 +756,7 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2]
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
