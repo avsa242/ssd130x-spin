@@ -309,7 +309,7 @@ PUB putchar_90deg_1bpp(ch) | ch_offs
     ch_offs := _font_addr + (ch * _fnt_width)
     draw_area(_charpx_x, _charpx_y, _charpx_x+_fnt_width, _charpx_y+_charcell_h)
 
-    wr_buffer(ch_offs, _charcell_w-1)             ' write the glyph directly to the display
+    wr_buffer(ch_offs, _charcell_w-1)           ' write the glyph directly to the display
 
     _charpx_x += _charcell_w                    ' go to next column
     if (_charpx_x > _charpx_xmax)               ' last col?
@@ -370,7 +370,7 @@ PUB clear()
 
 PUB clk_freq(freq)
 ' Set display internal oscillator frequency, in kHz
-'   Valid values: (disply-specific)
+'   Valid values: (display-specific)
 '       SSD1306:
 '           333, 337, 342, 347, 352, 357, 362, 367, 372, 377, 382, 387, 392,
 '           397, 402, 407
