@@ -4,7 +4,7 @@
     Description:    Driver for Solomon Systech SSD130x OLED displays
     Author:         Jesse Burt
     Started:        Apr 26, 2018
-    Updated:        Feb 4, 2025
+    Updated:        Feb 8, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -31,35 +31,35 @@ CON
     CENTERY     = HEIGHT/2
 
     { I2C }
-    SCL         = DEF_SCL
-    SDA         = DEF_SDA
-    RST         = 0
-    I2C_FREQ    = DEF_HZ
-    I2C_ADDR    = DEF_ADDR
+    SCL         = 28
+    SDA         = 29
+    RST         = -1
+    I2C_FREQ    = 100_000
+    I2C_ADDR    = 0
 
     { SPI }
     CS          = 0
     SCK         = 1
     MOSI        = 2
     DC          = 3
-    RST         = 0
-
+    RST         = -1
     { /// }
+
 
     BPP         = 1                             ' bits per pixel/color depth of the display
     BYTESPERPX  = 1 #> (BPP/8)                  ' limit to minimum of 1
     BPPDIV      = BYTESPERPX #> (8 / BPP)       ' limit to range BYTESPERPX .. (8/BPP)
     BUFF_SZ     = (WIDTH * HEIGHT) / BPPDIV
     MAX_COLOR   = (1 << BPP)-1
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
 
 
     SLAVE_WR    = core.SLAVE_ADDR
     SLAVE_RD    = core.SLAVE_ADDR|1
 
-    DEF_SCL     = 28
-    DEF_SDA     = 29
-    DEF_HZ      = 100_000
-    DEF_ADDR    = 0
 
 ' States for D/C pin
     DATA        = 1
