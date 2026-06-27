@@ -4,8 +4,8 @@
     Description:    Driver for Solomon Systech SSD130x OLED displays
     Author:         Jesse Burt
     Started:        Apr 26, 2018
-    Updated:        Feb 8, 2025
-    Copyright (c) 2025 - See end of file for terms of use.
+    Updated:        Jun 27, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -122,10 +122,10 @@ PUB startx(SCL_PIN, SDA_PIN, RES_PIN, I2C_HZ, ADDR_BITS, DISP_WID, DISP_HT, ptr_
     if ( lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) )
         if ( status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ) )
             time.usleep(core.TPOR)              ' wait for device startup
-            _addr_bits := ||(ADDR_BITS == 1) << 1 ' slave address bit option
+            _addr_bits := abs(ADDR_BITS == 1) << 1 ' slave address bit option
             _RES := RES_PIN                     ' -1 to disable
             reset()
-            if ( i2c.present(SLAVE_WR | _addr_bits) ) ' test device bus presence
+            if ( i2c.present(SLAVE_WR | _addr_bits) )   ' test device bus presence
                 _disp_width := DISP_WID
                 _disp_height := DISP_HT
                 _disp_xmax := _disp_width-1
@@ -556,77 +556,140 @@ PUB reset()
         outa[_RES] := 1
 
 
-PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
+PUB scroll_left_cont(sx, sy, ex, ey, dly) | cmd_pkt[2], len
 ' Scroll a region of the display left, continuously
-'   (sx, sy): upper-left coordinates (sx: 0..127, sy: 0..63)
-'   (ex, ey): lower-right coordinates (ex: sx..127, ey: sy..63)
-'   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
+'   (sx, sy):   upper-left coordinates (sx: 0..127, sy: 0..63)
+'   (ex, ey):   lower-right coordinates (ex: sx..127, ey: sy..63)
+'   dly:        inter-scroll step delay, in frames
+'               SSD1306: 2, 3, 4, 5, 6, 32, 64, 128
+'               SSD1309: 1, 2, 3, 4, 5, 64, 128, 256
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
 '   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop()
-    cmd_pkt.byte[0] := 0                        ' dummy byte
-    cmd_pkt.byte[1] := ((0 #> sy <# 63) >> 3)   ' div coord by 8
-    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
-    cmd_pkt.byte[3] := ((sy #> ey <# 63) >> 3)
-    cmd_pkt.byte[4] := (0 #> sx <# 127)
-    cmd_pkt.byte[5] := (sx #> ex <# 127)        ' ex _must_ be >= sx
-    writereg(core.HSCROLL_L, @cmd_pkt, 6)
+    len := 0
+    cmd_pkt.byte[len++] := 0                        ' dummy byte
+    cmd_pkt.byte[len++] := ((0 #> sy <# 63) >> 3)   ' div coord by 8
+
+#ifdef SSD1309
+    cmd_pkt.byte[len++] := lookdownz(dly: 5, 64, 128, 256, 2, 3, 4, 1)
+# else
+    cmd_pkt.byte[len++] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+#endif
+    cmd_pkt.byte[len++] := ((sy #> ey <# 63) >> 3)
+
+#ifdef SSD1309
+    cmd_pkt.byte[len++] := 0                        ' dummy byte
+    cmd_pkt.byte[len++] := (0 #> sx <# 127)
+    cmd_pkt.byte[len++] := (sx #> ex <# 127)
+# else
+    cmd_pkt.byte[len++] := (0 #> sx <# 127)
+    cmd_pkt.byte[len++] := (sx #> ex <# 127)        ' ex _must_ be >= sx
+#endif
+
+    writereg(core.HSCROLL_L, @cmd_pkt, len)
     command(core.STARTSCROLL)
 
 
-PUB scroll_left_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
+PUB scroll_left_up_cont(sx, sy, ex, ey, vlines, dly) | cmd_pkt[2], len
 ' Scroll a region of the display left and up, continuously
-'   (sy, ey): top and bottom of scroll region (0..63)
-'   vlines: vertical lines to scroll in each step (1..63)
-'   dly: inter-scroll step delay, in frames
+'   (sx, sy):   top-left of scroll region (sx ignored on SSD1306)
+'   (sy, ey):   bottom-right of scroll region (ex ignored on SSD1306)
+'   vlines:     vertical lines to scroll in each step (1..63)
+'   dly:        inter-scroll step delay, in frames
+'               SSD1306: 2, 3, 4, 5, 6, 32, 64, 128
+'               SSD1309: 1, 2, 3, 4, 5, 64, 128, 256
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
 '   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop()
-    cmd_pkt.byte[0] := 0
-    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
-    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
-    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
-    cmd_pkt.byte[4] := (1 #> vlines <# 63)
-    writereg(core.SCROLL_VHL, @cmd_pkt, 5)
+    len := 0
+#ifdef SSD1309
+    cmd_pkt.byte[len++] := 1                    ' 1=horizontal scroll also
+    cmd_pkt.byte[len++] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[len++] := lookdownz(dly: 5, 64, 128, 256, 2, 3, 4, 1)
+    cmd_pkt.byte[len++] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[len++] := (1 #> vlines <# 63)
+    cmd_pkt.byte[len++] := (0 #> sx <# 127)
+    cmd_pkt.byte[len++] := (sx #> ex <# 127)
+# else
+    cmd_pkt.byte[len++] := 0
+    cmd_pkt.byte[len++] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[len++] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[len++] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[len++] := (1 #> vlines <# 63)
+#endif
+
+    writereg(core.SCROLL_VHL, @cmd_pkt, len)
     command(core.STARTSCROLL)
 
 
-PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2]
+PUB scroll_right_cont(sx, sy, ex, ey, dly) | cmd_pkt[2], len
 ' Scroll a region of the display right, continuously
-'   (sx, sy): upper-left coordinates (sx: 0..127, sy: 0..63)
-'   (ex, ey): lower-right coordinates (ex: sx..127, ey: sy..63)
-'   dly: inter-scroll step delay, in frames (2, 3, 4, 5, 6, 32, 64, 128)
+'   (sx, sy):   upper-left coordinates (sx: 0..127, sy: 0..63
+'   (ex, ey):   lower-right coordinates (ex: sx..127, ey: sy..63)
+'   dly:        inter-scroll step delay, in frames
+'               SSD1306: 2, 3, 4, 5, 6, 32, 64, 128
+'               SSD1309: 1, 2, 3, 4, 5, 64, 128, 256
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
 '   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop()
-    cmd_pkt.byte[0] := 0
-    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
-    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
-    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
-    cmd_pkt.byte[4] := (0 #> sx <# 127)
-    cmd_pkt.byte[5] := (sx #> ex <# 127)
-    writereg(core.HSCROLL_R, @cmd_pkt, 6)
+    len := 0
+    cmd_pkt.byte[len++] := 0                        ' dummy byte
+    cmd_pkt.byte[len++] := ((0 #> sy <# 63) >> 3)   ' div coord by 8
+
+#ifdef SSD1309
+    cmd_pkt.byte[len++] := lookdownz(dly: 5, 64, 128, 256, 2, 3, 4, 1)
+# else
+    cmd_pkt.byte[len++] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+#endif
+    cmd_pkt.byte[len++] := ((sy #> ey <# 63) >> 3)
+
+#ifdef SSD1309
+    cmd_pkt.byte[len++] := 0                        ' dummy byte
+    cmd_pkt.byte[len++] := (0 #> sx <# 127)
+    cmd_pkt.byte[len++] := (sx #> ex <# 127)
+# else
+    cmd_pkt.byte[len++] := (0 #> sx <# 127)
+    cmd_pkt.byte[len++] := (sx #> ex <# 127)        ' ex _must_ be >= sx
+#endif
+
+    writereg(core.HSCROLL_R, @cmd_pkt, len)
     command(core.STARTSCROLL)
 
 
-PUB scroll_right_up_cont(sy, ey, vlines, dly) | cmd_pkt[2]
+PUB scroll_right_up_cont(sx, sy, ex, ey, vlines, dly) | cmd_pkt[2], len
 ' Scroll a region of the display right and up, continuously
-'   (sy, ey): top and bottom of scroll region (0..63)
-'   vlines: vertical lines to scroll in each step (1..63)
-'   dly: inter-scroll step delay, in frames
+'   (sx, sy):   top-left of scroll region (sx ignored on SSD1306)
+'   (sy, ey):   bottom-right of scroll region (ex ignored on SSD1306)
+'   vlines:     vertical lines to scroll in each step (1..63)
+'   dly:        inter-scroll step delay, in frames
+'               SSD1306: 2, 3, 4, 5, 6, 32, 64, 128
+'               SSD1309: 1, 2, 3, 4, 5, 64, 128, 256
 '   NOTE: Y-coordinates are scaled to multiples of 8 (hardware limitation)
 '   NOTE: ey must be greater than or equal to sy
 '   NOTE: scrolling is continuous, until stopped by calling scroll_stop()
     scroll_stop()
-    cmd_pkt.byte[0] := 0
-    cmd_pkt.byte[1] := (0 #> sy <# 63) / 8
-    cmd_pkt.byte[2] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
-    cmd_pkt.byte[3] := (sy #> ey <# 63) / 8
-    cmd_pkt.byte[4] := (1 #> vlines <# 63)
-    writereg(core.SCROLL_VHR, @cmd_pkt, 5)
+    len := 0
+
+#ifdef SSD1309
+    cmd_pkt.byte[len++] := 1                    ' 1=horizontal scroll also
+    cmd_pkt.byte[len++] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[len++] := lookdownz(dly: 5, 64, 128, 256, 2, 3, 4, 1)
+    cmd_pkt.byte[len++] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[len++] := (1 #> vlines <# 63)
+    cmd_pkt.byte[len++] := (0 #> sx <# 127)
+    cmd_pkt.byte[len++] := (sx #> ex <# 127)
+# else
+    cmd_pkt.byte[len++] := 0
+    cmd_pkt.byte[len++] := (0 #> sy <# 63) / 8
+    cmd_pkt.byte[len++] := lookdownz(dly: 6, 32, 64, 128, 3, 4, 5, 2)
+    cmd_pkt.byte[len++] := (sy #> ey <# 63) / 8
+    cmd_pkt.byte[len++] := (1 #> vlines <# 63)
+#endif
+
+    writereg(core.SCROLL_VHR, @cmd_pkt, len)
     command(core.STARTSCROLL)
 
 
